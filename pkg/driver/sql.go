@@ -166,12 +166,12 @@ func (st *SqlTranslator) GetAndOrTranslatorOpFunc(op string) TranslatorOpFunc {
 				}
 				s = s + v
 			case *gorql.RqlNode:
-				var _s string
-				_s, err = st.where(v)
+				var tempS string
+				tempS, err = st.where(v)
 				if err != nil {
 					return "", err
 				}
-				s = s + _s
+				s = s + tempS
 			}
 
 			sep = " " + op + " "
@@ -191,35 +191,35 @@ func (st *SqlTranslator) GetFieldValueTranslatorFunc(op string, valueAlterFunc A
 			s += sep
 			switch v := a.(type) {
 			case string:
-				var _s string
+				var tempS string
 				if i == 0 {
 					if IsValidField(v) {
-						_s = v
+						tempS = v
 					} else {
-						return "", fmt.Errorf("First argument must be a valid field name (arg: %s)", v)
+						return "", fmt.Errorf("first argument must be a valid field name (arg: %s)", v)
 					}
 				} else {
 					_, err := strconv.ParseInt(v, 10, 64)
 					if err == nil {
-						_s = v
+						tempS = v
 					} else if valueAlterFunc != nil {
-						_s, err = valueAlterFunc(v)
+						tempS, err = valueAlterFunc(v)
 						if err != nil {
 							return "", err
 						}
 					} else {
-						_s = Quote(v)
+						tempS = Quote(v)
 					}
 				}
 
-				s += _s
+				s += tempS
 			case *gorql.RqlNode:
-				var _s string
-				_s, err = st.where(v)
+				var tempS string
+				tempS, err = st.where(v)
 				if err != nil {
 					return "", err
 				}
-				s = s + _s
+				s = s + tempS
 			}
 
 			sep = " " + op + " "
@@ -237,27 +237,27 @@ func (st *SqlTranslator) GetOpFirstTranslatorFunc(op string, valueAlterFunc Alte
 			s += sep
 			switch v := a.(type) {
 			case string:
-				var _s string
+				var tempS string
 				_, err := strconv.ParseInt(v, 10, 64)
 				if err == nil || IsValidField(v) {
-					_s = v
+					tempS = v
 				} else if valueAlterFunc != nil {
-					_s, err = valueAlterFunc(v)
+					tempS, err = valueAlterFunc(v)
 					if err != nil {
 						return "", err
 					}
 				} else {
-					_s = Quote(v)
+					tempS = Quote(v)
 				}
 
-				s += _s
+				s += tempS
 			case *gorql.RqlNode:
-				var _s string
-				_s, err = st.where(v)
+				var tempS string
+				tempS, err = st.where(v)
 				if err != nil {
 					return "", err
 				}
-				s = s + _s
+				s = s + tempS
 			}
 
 			sep = ", "
