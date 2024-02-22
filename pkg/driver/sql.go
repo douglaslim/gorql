@@ -8,8 +8,6 @@ import (
 	"strings"
 )
 
-type TranslatorOpFunc func(*gorql.RqlNode) (string, error)
-
 type SqlTranslator struct {
 	rootNode  *gorql.RqlRootNode
 	sqlOpsDic map[string]TranslatorOpFunc
@@ -162,7 +160,7 @@ func (st *SqlTranslator) GetAndOrTranslatorOpFunc(op string) TranslatorOpFunc {
 			switch v := a.(type) {
 			case string:
 				if !IsValidField(v) {
-					return "", fmt.Errorf("Invalid field name : %s", v)
+					return "", fmt.Errorf("invalid field name : %s", v)
 				}
 				s = s + v
 			case *gorql.RqlNode:
