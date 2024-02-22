@@ -134,7 +134,7 @@ func NewSqlTranslator(r *gorql.RqlRootNode) (st *SqlTranslator) {
 }
 
 func (st *SqlTranslator) GetEqualityTranslatorOpFunc(op, specialOp string) TranslatorOpFunc {
-	return TranslatorOpFunc(func(n *gorql.RqlNode) (s string, err error) {
+	return func(n *gorql.RqlNode) (s string, err error) {
 		value, err := url.QueryUnescape(n.Args[1].(string))
 		if err != nil {
 			return "", err
@@ -150,11 +150,11 @@ func (st *SqlTranslator) GetEqualityTranslatorOpFunc(op, specialOp string) Trans
 		}
 
 		return st.GetFieldValueTranslatorFunc(op, nil)(n)
-	})
+	}
 }
 
 func (st *SqlTranslator) GetAndOrTranslatorOpFunc(op string) TranslatorOpFunc {
-	return TranslatorOpFunc(func(n *gorql.RqlNode) (s string, err error) {
+	return func(n *gorql.RqlNode) (s string, err error) {
 		sep := ""
 
 		for _, a := range n.Args {
@@ -178,13 +178,13 @@ func (st *SqlTranslator) GetAndOrTranslatorOpFunc(op string) TranslatorOpFunc {
 		}
 
 		return "(" + s + ")", nil
-	})
+	}
 }
 
 type AlterStringFunc func(string) (string, error)
 
 func (st *SqlTranslator) GetFieldValueTranslatorFunc(op string, valueAlterFunc AlterStringFunc) TranslatorOpFunc {
-	return TranslatorOpFunc(func(n *gorql.RqlNode) (s string, err error) {
+	return func(n *gorql.RqlNode) (s string, err error) {
 		sep := ""
 
 		for i, a := range n.Args {
@@ -226,11 +226,11 @@ func (st *SqlTranslator) GetFieldValueTranslatorFunc(op string, valueAlterFunc A
 		}
 
 		return "(" + s + ")", nil
-	})
+	}
 }
 
 func (st *SqlTranslator) GetOpFirstTranslatorFunc(op string, valueAlterFunc AlterStringFunc) TranslatorOpFunc {
-	return TranslatorOpFunc(func(n *gorql.RqlNode) (s string, err error) {
+	return func(n *gorql.RqlNode) (s string, err error) {
 		sep := ""
 
 		for _, a := range n.Args {
@@ -264,7 +264,7 @@ func (st *SqlTranslator) GetOpFirstTranslatorFunc(op string, valueAlterFunc Alte
 		}
 
 		return op + "(" + s + ")", nil
-	})
+	}
 }
 
 func IsValidField(s string) bool {
