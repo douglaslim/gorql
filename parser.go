@@ -7,6 +7,17 @@ import (
 	"strings"
 )
 
+var (
+	reservedOps = []string{OffsetOp, LimitOp, FieldsOp, SortOp}
+)
+
+const (
+	OffsetOp = "offset"
+	LimitOp  = "limit"
+	FieldsOp = "fields"
+	SortOp   = "sort"
+)
+
 type RqlNode struct {
 	Op   string
 	Args []interface{}
@@ -21,6 +32,7 @@ type RqlRootNode struct {
 	Node   *RqlNode
 	limit  string
 	offset string
+	fields []string
 	sorts  []Sort
 }
 
@@ -36,7 +48,7 @@ func (r *RqlRootNode) Sort() []Sort {
 	return r.sorts
 }
 
-var IsValueError = fmt.Errorf("bloc is a value")
+var ErrValueError = fmt.Errorf("bloc is a value")
 
 type TokenBloc []TokenString
 
@@ -49,47 +61,21 @@ func (tb TokenBloc) String() (s string) {
 }
 
 func (r *RqlRootNode) ParseSpecialOps() {
-	if parseLimit(r.Node, r) || parseSort(r.Node, r) {
+	if parseLimit(r.Node, r) || parseSort(r.Node, r) || parseOffset(r.Node, r) {
 		r.Node = nil
 	} else if r.Node != nil {
 		if strings.ToUpper(r.Node.Op) == "AND" {
-			limitIndex := -1
-			sortIndex := -1
-			for i, c := range r.Node.Args {
+			tmpNodeArgs := r.Node.Args[:0]
+			for _, c := range r.Node.Args {
 				switch n := c.(type) {
 				case *RqlNode:
-					if parseLimit(n, r) {
-						limitIndex = i
-					} else if parseSort(n, r) {
-						sortIndex = i
+					isSpecialOps := parseLimit(n, r) || parseSort(n, r) || parseOffset(n, r)
+					if !isSpecialOps {
+						tmpNodeArgs = append(tmpNodeArgs, n)
 					}
 				}
 			}
-			if limitIndex >= 0 {
-				if sortIndex > limitIndex {
-					sortIndex = sortIndex - 1
-				}
-				if len(r.Node.Args) == 2 {
-					keepIndex := 0
-					if limitIndex == 0 {
-						keepIndex = 1
-					}
-					r.Node = r.Node.Args[keepIndex].(*RqlNode)
-				} else {
-					r.Node.Args = append(r.Node.Args[:limitIndex], r.Node.Args[limitIndex+1:]...)
-				}
-			}
-			if sortIndex >= 0 {
-				if len(r.Node.Args) == 2 {
-					keepIndex := 0
-					if sortIndex == 0 {
-						keepIndex = 1
-					}
-					r.Node = r.Node.Args[keepIndex].(*RqlNode)
-				} else {
-					r.Node.Args = append(r.Node.Args[:sortIndex], r.Node.Args[sortIndex+1:]...)
-				}
-			}
+			r.Node.Args = tmpNodeArgs
 			if len(r.Node.Args) == 0 {
 				r.Node = nil
 			}
@@ -101,12 +87,20 @@ func parseLimit(n *RqlNode, root *RqlRootNode) (isLimitOp bool) {
 	if n == nil {
 		return false
 	}
-	if strings.ToUpper(n.Op) == "LIMIT" {
-		root.limit = n.Args[0].(string)
-		if len(n.Args) > 1 {
-			root.offset = n.Args[1].(string)
-		}
+	if n.Op == LimitOp {
+		root.limit = n.Args[1].(string)
 		isLimitOp = true
+	}
+	return
+}
+
+func parseOffset(n *RqlNode, root *RqlRootNode) (isOffsetOp bool) {
+	if n == nil {
+		return false
+	}
+	if n.Op == OffsetOp {
+		root.offset = n.Args[1].(string)
+		isOffsetOp = true
 	}
 	return
 }
@@ -115,7 +109,7 @@ func parseSort(n *RqlNode, root *RqlRootNode) (isSortOp bool) {
 	if n == nil {
 		return false
 	}
-	if strings.ToUpper(n.Op) == "SORT" {
+	if n.Op == SortOp {
 		for _, s := range n.Args {
 			property := s.(string)
 			desc := false
@@ -178,7 +172,7 @@ func parse(ts []TokenString) (node *RqlNode, err error) {
 	for _, c := range childTs {
 		childNode, err = parse(c)
 		if err != nil {
-			if errors.Is(err, IsValueError) {
+			if errors.Is(err, ErrValueError) {
 				node.Args = append(node.Args, c[0].s)
 			} else {
 				return nil, err
@@ -278,7 +272,7 @@ func getBlocNode(tb []TokenString) (*RqlNode, error) {
 	n := &RqlNode{}
 
 	if isValue(tb) {
-		return nil, IsValueError
+		return nil, ErrValueError
 	} else if isFuncStyleBloc(tb) {
 		var err error
 		n.Op = tb[0].s
@@ -291,10 +285,12 @@ func getBlocNode(tb []TokenString) (*RqlNode, error) {
 		if err != nil {
 			return nil, err
 		}
+	} else if isReservedBloc(tb) {
+		n.Op = tb[0].s
+		n.Args = []interface{}{tb[0].s, tb[2].s}
 	} else if isSimpleEqualBloc(tb) {
 		n.Op = "eq"
 		n.Args = []interface{}{tb[0].s, tb[2].s}
-
 	} else if isDoubleEqualBloc(tb) {
 		n.Op = tb[2].s
 		n.Args = []interface{}{tb[0].s}
@@ -349,7 +345,7 @@ func parseFuncArgs(tb []TokenString) (args []interface{}, err error) {
 	for _, ts := range argTokens {
 		n, err := parse(ts)
 		if err != nil {
-			if errors.Is(err, IsValueError) {
+			if errors.Is(err, ErrValueError) {
 				args = append(args, ts[0].s)
 			} else {
 				return args, err
@@ -386,6 +382,16 @@ func isSimpleEqualBloc(tb []TokenString) bool {
 	}
 
 	return isSimple
+}
+
+func isReservedBloc(tb []TokenString) bool {
+	matchReserved := false
+	for _, r := range reservedOps {
+		if tb[0].s == r {
+			matchReserved = true
+		}
+	}
+	return tb[0].t == Ident && tb[1].t == EqualSign && matchReserved
 }
 
 func isDoubleEqualBloc(tb []TokenString) bool {

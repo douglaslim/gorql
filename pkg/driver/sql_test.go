@@ -56,8 +56,8 @@ var tests = []Test{
 	},
 	{
 		Name:                `Sort and limit`,
-		RQL:                 `eq(foo,42)&sort(+price,-length)&limit(10,20)`,
-		SQL:                 `WHERE (foo = 42) ORDER BY price, length DESC LIMIT 10 OFFSET 20`,
+		RQL:                 `eq(foo,42)&sort(+price,-length)&limit=10&offset=20`,
+		SQL:                 `WHERE ((foo = 42)) ORDER BY price, length DESC LIMIT 10 OFFSET 20`,
 		WantParseError:      false,
 		WantTranslatorError: false,
 	},
