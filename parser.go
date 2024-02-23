@@ -8,13 +8,13 @@ import (
 )
 
 var (
-	reservedOps = []string{OffsetOp, LimitOp, FieldsOp, SortOp}
+	reservedOps = []string{OffsetOp, LimitOp, SelectOp, SortOp}
 )
 
 const (
 	OffsetOp = "offset"
 	LimitOp  = "limit"
-	FieldsOp = "fields"
+	SelectOp = "select"
 	SortOp   = "sort"
 )
 
@@ -61,7 +61,7 @@ func (tb TokenBloc) String() (s string) {
 }
 
 func (r *RqlRootNode) ParseSpecialOps() {
-	if parseLimit(r.Node, r) || parseSort(r.Node, r) || parseOffset(r.Node, r) {
+	if parseLimit(r.Node, r) || parseSort(r.Node, r) || parseOffset(r.Node, r) || parseFields(r.Node, r) {
 		r.Node = nil
 	} else if r.Node != nil {
 		if strings.ToUpper(r.Node.Op) == "AND" {
@@ -69,7 +69,7 @@ func (r *RqlRootNode) ParseSpecialOps() {
 			for _, c := range r.Node.Args {
 				switch n := c.(type) {
 				case *RqlNode:
-					isSpecialOps := parseLimit(n, r) || parseSort(n, r) || parseOffset(n, r)
+					isSpecialOps := parseLimit(n, r) || parseSort(n, r) || parseOffset(n, r) || parseFields(n, r)
 					if !isSpecialOps {
 						tmpNodeArgs = append(tmpNodeArgs, n)
 					}
@@ -124,6 +124,20 @@ func parseSort(n *RqlNode, root *RqlRootNode) (isSortOp bool) {
 		}
 
 		isSortOp = true
+	}
+	return
+}
+
+func parseFields(n *RqlNode, root *RqlRootNode) (isFieldsOp bool) {
+	if n == nil {
+		return false
+	}
+	if n.Op == SelectOp {
+		for _, s := range n.Args {
+			property := s.(string)
+			root.fields = append(root.fields, property)
+		}
+		isFieldsOp = true
 	}
 	return
 }
