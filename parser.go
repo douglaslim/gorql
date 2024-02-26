@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 )
 
@@ -60,7 +61,7 @@ func (tb TokenBloc) String() (s string) {
 	return
 }
 
-func (r *RqlRootNode) ParseSpecialOps() {
+func (r *RqlRootNode) parseSpecialOps() {
 	if parseLimit(r.Node, r) || parseSort(r.Node, r) || parseOffset(r.Node, r) || parseFields(r.Node, r) {
 		r.Node = nil
 	} else if r.Node != nil {
@@ -81,6 +82,22 @@ func (r *RqlRootNode) ParseSpecialOps() {
 			}
 		}
 	}
+}
+
+func (r *RqlRootNode) validateSpecialOps() error {
+	if r.limit != "" {
+		_, err := strconv.Atoi(r.limit)
+		if err != nil {
+			return fmt.Errorf("invalid format for limit: %s", err)
+		}
+	}
+	if r.offset != "" {
+		_, err := strconv.Atoi(r.offset)
+		if err != nil {
+			return fmt.Errorf("invalid format for offset: %s", err)
+		}
+	}
+	return nil
 }
 
 func parseLimit(n *RqlNode, root *RqlRootNode) (isLimitOp bool) {
@@ -161,7 +178,11 @@ func (p *Parser) Parse(r io.Reader) (root *RqlRootNode, err error) {
 	if err != nil {
 		return nil, err
 	}
-	root.ParseSpecialOps()
+	root.parseSpecialOps()
+	err = root.validateSpecialOps()
+	if err != nil {
+		return nil, err
+	}
 	return
 }
 
