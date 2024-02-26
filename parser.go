@@ -53,7 +53,7 @@ func (r *RqlRootNode) Sort() []Sort {
 	return r.sorts
 }
 
-var ErrValueError = fmt.Errorf("bloc is a value")
+var ErrBlocValue = fmt.Errorf("bloc is a value")
 
 type TokenBloc []TokenString
 
@@ -352,7 +352,7 @@ func parse(ts []TokenString) (node *RqlNode, err error) {
 	for _, c := range childTs {
 		childNode, err = parse(c)
 		if err != nil {
-			if errors.Is(err, ErrValueError) {
+			if errors.Is(err, ErrBlocValue) {
 				node.Args = append(node.Args, c[0].s)
 			} else {
 				return nil, err
@@ -452,7 +452,7 @@ func getBlocNode(tb []TokenString) (*RqlNode, error) {
 	n := &RqlNode{}
 
 	if isValue(tb) {
-		return nil, ErrValueError
+		return nil, ErrBlocValue
 	} else if isFuncStyleBloc(tb) {
 		var err error
 		n.Op = tb[0].s
@@ -525,7 +525,7 @@ func parseFuncArgs(tb []TokenString) (args []interface{}, err error) {
 	for _, ts := range argTokens {
 		n, err := parse(ts)
 		if err != nil {
-			if errors.Is(err, ErrValueError) {
+			if errors.Is(err, ErrBlocValue) {
 				args = append(args, ts[0].s)
 			} else {
 				return args, err
