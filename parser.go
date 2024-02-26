@@ -1,11 +1,15 @@
 package gorql
 
 import (
+	"container/list"
+	"database/sql"
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
@@ -160,11 +164,152 @@ func parseFields(n *RqlNode, root *RqlRootNode) (isFieldsOp bool) {
 }
 
 type Parser struct {
-	s *Scanner
+	s      *Scanner
+	c      *Config
+	fields map[string]*field
+}
+
+// field is a configuration of a struct field.
+type field struct {
+	// Name of the column.
+	Name string
+	// Has a "sort" option in the tag.
+	Sortable bool
+	// Has a "filter" option in the tag.
+	Filterable bool
+	// Validation for the type. for example, unit8 greater than or equal to 0.
+	ValidateFn func(interface{}) error
+	// ConvertFn converts the given value to the type value.
+	CovertFn func(interface{}) interface{}
 }
 
 func NewParser() *Parser {
 	return &Parser{s: NewScanner()}
+}
+
+func NewParserWithConfig(c *Config) (*Parser, error) {
+	err := c.defaults()
+	if err != nil {
+		return nil, err
+	}
+	p := &Parser{
+		s:      NewScanner(),
+		c:      c,
+		fields: make(map[string]*field),
+	}
+	err = p.init()
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+// init initializes the parser parsing state. it scans the fields
+// in a breath-first-search order and for each one of the field calls parseField.
+func (p *Parser) init() error {
+	t := indirect(reflect.TypeOf(p.c.Model))
+	l := list.New()
+	for i := 0; i < t.NumField(); i++ {
+		l.PushFront(t.Field(i))
+	}
+	for l.Len() > 0 {
+		f := l.Remove(l.Front()).(reflect.StructField)
+		_, ok := f.Tag.Lookup(p.c.TagName)
+		switch t := indirect(f.Type); {
+		// no matter what the type of this field. if it has a tag,
+		// it is probably a filterable or sortable.
+		case ok:
+			if err := p.parseField(f); err != nil {
+				return err
+			}
+		case t.Kind() == reflect.Struct:
+			for i := 0; i < t.NumField(); i++ {
+				structField := t.Field(i)
+				if !f.Anonymous {
+					structField.Name = f.Name + p.c.FieldSep + structField.Name
+				}
+				l.PushFront(structField)
+			}
+		case f.Anonymous:
+			p.c.Log("ignore embedded field %q that is not struct type", f.Name)
+		}
+	}
+	return nil
+}
+
+// parseField parses the given struct field tag, and add a rule
+// in the parser according to its type and the options that were set on the tag.
+func (p *Parser) parseField(sf reflect.StructField) error {
+	f := &field{
+		Name:     p.c.ColumnFn(sf.Name),
+		CovertFn: valueFn,
+	}
+	layout := time.RFC3339
+	opts := strings.Split(sf.Tag.Get(p.c.TagName), ",")
+	for _, opt := range opts {
+		switch s := strings.TrimSpace(opt); {
+		case s == "sort":
+			f.Sortable = true
+		case s == "filter":
+			f.Filterable = true
+		case strings.HasPrefix(opt, "column"):
+			f.Name = strings.TrimPrefix(opt, "column=")
+		case strings.HasPrefix(opt, "layout"):
+			layout = strings.TrimPrefix(opt, "layout=")
+			// if it's one of the standard layouts, like: RFC822 or Kitchen.
+			if ly, ok := layouts[layout]; ok {
+				layout = ly
+			}
+			// test the layout on a value (on itself). however, some layouts are invalid
+			// time values for time.Parse, due to formats such as _ for space padding and
+			// Z for zone information.
+			v := strings.NewReplacer("_", " ", "Z", "+").Replace(layout)
+			if _, err := time.Parse(layout, v); err != nil {
+				return fmt.Errorf("rql: layout %q is not parsable: %v", layout, err)
+			}
+		default:
+			p.c.Log("Ignoring unknown option %q in struct tag", opt)
+		}
+	}
+	switch typ := indirect(sf.Type); typ.Kind() {
+	case reflect.Bool:
+		f.ValidateFn = validateBool
+	case reflect.String:
+		f.ValidateFn = validateString
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		f.ValidateFn = validateInt
+		f.CovertFn = convertInt
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		f.ValidateFn = validateUInt
+		f.CovertFn = convertInt
+	case reflect.Float32, reflect.Float64:
+		f.ValidateFn = validateFloat
+	case reflect.Struct:
+		switch v := reflect.Zero(typ); v.Interface().(type) {
+		case sql.NullBool:
+			f.ValidateFn = validateBool
+		case sql.NullString:
+			f.ValidateFn = validateString
+		case sql.NullInt64:
+			f.ValidateFn = validateInt
+			f.CovertFn = convertInt
+		case sql.NullFloat64:
+			f.ValidateFn = validateFloat
+		case time.Time:
+			f.ValidateFn = validateTime(layout)
+			f.CovertFn = convertTime(layout)
+		default:
+			if !v.Type().ConvertibleTo(reflect.TypeOf(time.Time{})) {
+				return fmt.Errorf("rql: field type for %q is not supported", sf.Name)
+			}
+			f.ValidateFn = validateTime(layout)
+			f.CovertFn = convertTime(layout)
+		}
+	default:
+		return fmt.Errorf("rql: field type for %q is not supported", sf.Name)
+	}
+	p.fields[f.Name] = f
+	return nil
 }
 
 // Parse constructs an AST for code transformation
