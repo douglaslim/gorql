@@ -3,6 +3,7 @@ package driver
 import (
 	"fmt"
 	"gorql"
+	"strconv"
 	"strings"
 )
 
@@ -21,11 +22,75 @@ func (mt *MongoTranslator) DeleteOpFunc(op string) {
 	delete(mt.OpsDic, strings.ToUpper(op))
 }
 
+func (mt *MongoTranslator) Mongo() (mongo string, err error) {
+	var where string
+	where, err = mt.Where()
+	if err != nil {
+		return
+	}
+	if len(where) > 0 {
+		mongo = where
+	}
+	sort := mt.Sort()
+	if len(sort) > 0 {
+		mongo += ", " + sort
+	}
+	limit := mt.Limit()
+	if len(limit) > 0 {
+		mongo += ", " + limit
+	}
+	offset := mt.Offset()
+	if len(offset) > 0 {
+		mongo += ", " + offset
+	}
+	return mongo, nil
+}
+
 func (mt *MongoTranslator) Where() (string, error) {
 	if mt.rootNode == nil {
 		return "", nil
 	}
 	return mt.where(mt.rootNode.Node)
+}
+
+func (mt *MongoTranslator) Sort() (sort string) {
+	if mt.rootNode == nil {
+		return
+	}
+	sep := ""
+	for _, item := range mt.rootNode.Sort() {
+		sort += sep
+		direction := 1
+		if item.Desc {
+			direction = -1
+		}
+		sort += fmt.Sprintf(`'%s': %d`, item.By, direction)
+		sep = ", "
+	}
+	if len(sort) > 0 {
+		return fmt.Sprintf("{'$sort': {%s}}", sort)
+	}
+	return
+}
+
+func (mt *MongoTranslator) Limit() (limit string) {
+	if mt.rootNode == nil {
+		return
+	}
+	l := mt.rootNode.Limit()
+	if l != "" && strings.ToUpper(l) != "INFINITY" {
+		v, _ := strconv.Atoi(l)
+		limit = fmt.Sprintf("{'$limit': %d}", v)
+	}
+	return
+}
+
+func (mt *MongoTranslator) Offset() (offset string) {
+	if mt.rootNode != nil && mt.rootNode.Offset() != "" {
+		v, _ := strconv.Atoi(mt.rootNode.Offset())
+		offset = fmt.Sprintf("{'$skip': %d}", v)
+	}
+	return
 }
 
 func (mt *MongoTranslator) where(n *gorql.RqlNode) (string, error) {

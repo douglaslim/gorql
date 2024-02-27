@@ -14,14 +14,15 @@ type MongodbTest struct {
 	WantTranslatorError bool   // Test should raise an error when translating to Expected
 }
 
-type MongoModel struct {
+type MongoTestModel struct {
 	Foo      string  `rql:"filter"`
-	Price    float64 `rql:"filter"`
+	Price    float64 `rql:"filter,sort"`
 	Disabled bool    `rql:"filter"`
+	Length   int     `rql:"filter,sort"`
 }
 
 func (test *MongodbTest) Run(t *testing.T) {
-	p, err := gorql.NewParser(&gorql.Config{Model: MongoModel{}})
+	p, err := gorql.NewParser(&gorql.Config{Model: MongoTestModel{}})
 	if err != nil {
 		t.Fatalf("(%s) New parser error :%v\n", test.Name, err)
 	}
@@ -52,6 +53,13 @@ var mongodbTests = []MongodbTest{
 		Name:                `Basic translation with func style operators`,
 		RQL:                 `and(eq(foo,42),gt(price,10),not(disabled=false))`,
 		Expected:            `{'$and': [{'foo': {'$eq': '42'}}, {'price': {'$gt': 10}}, {'$not': {'disabled': {'$eq': false}}}]}`,
+		WantParseError:      false,
+		WantTranslatorError: false,
+	},
+	{
+		Name:                `Basic translation with func simple equal operators`,
+		RQL:                 `foo=42&price=10`,
+		Expected:            `{'$and': [{'foo': {'$eq': '42'}}, {'price': {'$eq': 10}}]}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
 	},
