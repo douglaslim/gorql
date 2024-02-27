@@ -2,4 +2,18 @@ package driver
 
 import "gorql"
 
+const (
+	AndOp   = "AND"
+	OrOp    = "OR"
+	NeOp    = "NE"
+	EqOp    = "EQ"
+	LikeOp  = "LIKE"
+	MatchOp = "MATCH"
+	GtOp    = "GT"
+	LtOp    = "LT"
+	GeOp    = "GE"
+	LeOp    = "LE"
+	NotOp   = "NOT"
+)
+
 type TranslatorOpFunc func(*gorql.RqlNode) (string, error)
