@@ -25,9 +25,21 @@ var starToRegexPatternFunc = AlterValueFunc(func(value interface{}) (interface{}
 	} else if len(v) >= 2 && strings.HasPrefix(v, "*") {
 		newValue = v[1:] + "$"
 	} else if len(v) >= 2 && strings.HasSuffix(v, "*") {
-		newValue = "^" + v[1:len(v)-1]
+		newValue = "^" + v[0:len(v)-1]
 	}
 	return convert(newValue)
+})
+
+var ilikePatternFunc = AlterValueFunc(func(value interface{}) (interface{}, error) {
+	v, ok := value.(string)
+	if !ok {
+		return nil, fmt.Errorf("unable to convert %v to string", value)
+	}
+	newVal, err := starToRegexPatternFunc(v)
+	if err != nil {
+		return nil, err
+	}
+	return fmt.Sprintf(`%v, '$options': 'i'`, newVal), nil
 })
 
 var convert = AlterValueFunc(func(value interface{}) (interface{}, error) {
@@ -136,7 +148,7 @@ func NewMongoTranslator(r *gorql.RqlRootNode) (mt *MongoTranslator) {
 	mt.SetOpFunc(NeOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(NeOp), convert))
 	mt.SetOpFunc(EqOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(EqOp), convert))
 	mt.SetOpFunc(LikeOp, mt.GetFieldValueTranslatorFunc("regex", starToRegexPatternFunc))
-	//mt.SetOpFunc(MatchOp, mt.GetFieldValueTranslatorFunc("ILIKE", starToPercentFunc))
+	mt.SetOpFunc(MatchOp, mt.GetFieldValueTranslatorFunc("regex", ilikePatternFunc))
 	mt.SetOpFunc(GtOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(GtOp), convert))
 	//mt.SetOpFunc(LtOp, mt.GetFieldValueTranslatorFunc("<", nil))
 	//mt.SetOpFunc(GeOp, mt.GetFieldValueTranslatorFunc(">=", nil))
