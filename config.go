@@ -29,7 +29,7 @@ type Config struct {
 	//
 	// In order to create a parser for the given resource, you will do it like so:
 	//
-	//	var QueryParser = rql.MustNewParser(
+	//	var QueryParser = rql.NewParser(&rql.Config{
 	// 		Model: User{},
 	// 	})
 	//
@@ -45,14 +45,6 @@ type Config struct {
 	//
 	// We assume the schema for this struct contains a column named "address_city". Therefore, the default
 	// separator is underscore ("_"). But, you can change it to "." for convenience or readability reasons.
-	// Then you will be able to query your resource like this:
-	//
-	//	{
-	//		"filter": {
-	//			"address.city": "DC"
-	// 		}
-	//	}
-	//
 	// The parser will automatically convert it to underscore ("_"). If you want to control the name of
 	// the column, use the "column" option in the struct definition. For example:
 	//

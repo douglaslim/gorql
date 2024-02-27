@@ -15,7 +15,10 @@ type Test struct {
 }
 
 func (test *Test) Run(t *testing.T) {
-	p := gorql.NewParser()
+	p, err := gorql.NewParser(nil)
+	if err != nil {
+		t.Fatalf("(%s) New parser error :%v\n", test.Name, err)
+	}
 
 	rqlNode, err := p.Parse(strings.NewReader(test.RQL))
 	if test.WantParseError != (err != nil) {

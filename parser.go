@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -86,22 +85,6 @@ func (r *RqlRootNode) parseSpecialOps() {
 			}
 		}
 	}
-}
-
-func (r *RqlRootNode) validateSpecialOps() error {
-	if r.limit != "" {
-		_, err := strconv.Atoi(r.limit)
-		if err != nil {
-			return fmt.Errorf("invalid format for limit: %s", err)
-		}
-	}
-	if r.offset != "" {
-		_, err := strconv.Atoi(r.offset)
-		if err != nil {
-			return fmt.Errorf("invalid format for offset: %s", err)
-		}
-	}
-	return nil
 }
 
 func parseLimit(n *RqlNode, root *RqlRootNode) (isLimitOp bool) {
@@ -183,23 +166,21 @@ type field struct {
 	CovertFn func(interface{}) interface{}
 }
 
-func NewParser() *Parser {
-	return &Parser{s: NewScanner()}
-}
-
-func NewParserWithConfig(c *Config) (*Parser, error) {
-	err := c.defaults()
-	if err != nil {
-		return nil, err
-	}
+func NewParser(c *Config) (*Parser, error) {
 	p := &Parser{
 		s:      NewScanner(),
 		c:      c,
 		fields: make(map[string]*field),
 	}
-	err = p.init()
-	if err != nil {
-		return nil, err
+	if c != nil {
+		err := c.defaults()
+		if err != nil {
+			return nil, err
+		}
+		err = p.init()
+		if err != nil {
+			return nil, err
+		}
 	}
 	return p, nil
 }
@@ -274,6 +255,7 @@ func (p *Parser) parseField(sf reflect.StructField) error {
 	switch typ := indirect(sf.Type); typ.Kind() {
 	case reflect.Bool:
 		f.ValidateFn = validateBool
+		f.CovertFn = convertBool
 	case reflect.String:
 		f.ValidateFn = validateString
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -284,10 +266,12 @@ func (p *Parser) parseField(sf reflect.StructField) error {
 		f.CovertFn = convertInt
 	case reflect.Float32, reflect.Float64:
 		f.ValidateFn = validateFloat
+		f.CovertFn = convertFloat
 	case reflect.Struct:
 		switch v := reflect.Zero(typ); v.Interface().(type) {
 		case sql.NullBool:
 			f.ValidateFn = validateBool
+			f.CovertFn = convertBool
 		case sql.NullString:
 			f.ValidateFn = validateString
 		case sql.NullInt64:
@@ -295,6 +279,7 @@ func (p *Parser) parseField(sf reflect.StructField) error {
 			f.CovertFn = convertInt
 		case sql.NullFloat64:
 			f.ValidateFn = validateFloat
+			f.CovertFn = convertFloat
 		case time.Time:
 			f.ValidateFn = validateTime(layout)
 			f.CovertFn = convertTime(layout)
@@ -324,9 +309,15 @@ func (p *Parser) Parse(r io.Reader) (root *RqlRootNode, err error) {
 		return nil, err
 	}
 	root.parseSpecialOps()
-	err = root.validateSpecialOps()
+	err = p.validateSpecialOps(root)
 	if err != nil {
 		return nil, err
+	}
+	if p.c != nil {
+		err := p.validateFields(root.Node)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return
 }
