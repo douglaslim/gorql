@@ -44,17 +44,17 @@ var mongodbTests = []MongodbTest{
 	{
 		Name:                `Basic translation with double equal operators`,
 		RQL:                 `and(foo=eq=42,price=eq=10)`,
-		Expected:            `{'$and': [{'$eq': {'foo': '42'}}, {'$eq': {'price': 10}}]}`,
+		Expected:            `{'$and': [{'foo': {'$eq': '42'}}, {'price': {'$eq': 10}}]}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
 	},
-	//{
-	//	Name:                `Basic translation with func style operators`,
-	//	RQL:                 `and(eq(foo,42),gt(price,10),not(disabled))`,
-	//	Expected:            `{'$and': [{'$eq': {'foo': '42'}}, {'$eq': {'price': 10}}, {'$eq': {'disabled': false}}]}`,
-	//	WantParseError:      false,
-	//	WantTranslatorError: false,
-	//},
+	{
+		Name:                `Basic translation with func style operators`,
+		RQL:                 `and(eq(foo,42),gt(price,10),not(disabled=false))`,
+		Expected:            `{'$and': [{'foo': {'$eq': '42'}}, {'price': {'$gt': 10}}, {'$not': {'disabled': {'$eq': false}}}]}`,
+		WantParseError:      false,
+		WantTranslatorError: false,
+	},
 }
 
 func TestMongodbParser(t *testing.T) {

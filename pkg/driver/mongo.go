@@ -42,16 +42,16 @@ func (mt *MongoTranslator) where(n *gorql.RqlNode) (string, error) {
 func NewMongoTranslator(r *gorql.RqlRootNode) (mt *MongoTranslator) {
 	mt = &MongoTranslator{r, map[string]TranslatorOpFunc{}}
 	mt.SetOpFunc(AndOp, mt.GetAndOrTranslatorOpFunc(strings.ToLower(AndOp)))
-	mt.SetOpFunc(OrOp, mt.GetAndOrTranslatorOpFunc(OrOp))
-	//mt.SetOpFunc(NeOp, mt.GetEqualityTranslatorOpFunc("!=", "IS NOT"))
-	mt.SetOpFunc(EqOp, mt.GetEqualityTranslatorOpFunc(strings.ToLower(EqOp)))
+	mt.SetOpFunc(OrOp, mt.GetAndOrTranslatorOpFunc(strings.ToLower(OrOp)))
+	mt.SetOpFunc(NeOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(NeOp)))
+	mt.SetOpFunc(EqOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(EqOp)))
 	//mt.SetOpFunc(LikeOp, mt.GetFieldValueTranslatorFunc("LIKE", starToPercentFunc))
 	//mt.SetOpFunc(MatchOp, mt.GetFieldValueTranslatorFunc("ILIKE", starToPercentFunc))
 	mt.SetOpFunc(GtOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(GtOp)))
 	//mt.SetOpFunc(LtOp, mt.GetFieldValueTranslatorFunc("<", nil))
 	//mt.SetOpFunc(GeOp, mt.GetFieldValueTranslatorFunc(">=", nil))
 	//mt.SetOpFunc(LeOp, mt.GetFieldValueTranslatorFunc("<=", nil))
-	mt.SetOpFunc(NotOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(NotOp)))
+	mt.SetOpFunc(NotOp, mt.GetOpFirstTranslatorFunc(strings.ToLower(NotOp)))
 	return
 }
 
@@ -75,12 +75,6 @@ func (mt *MongoTranslator) GetAndOrTranslatorOpFunc(op string) TranslatorOpFunc 
 			}
 		}
 		return fmt.Sprintf("{'$%s': [%s]}", op, strings.Join(ops, ", ")), nil
-	}
-}
-
-func (mt *MongoTranslator) GetEqualityTranslatorOpFunc(op string) TranslatorOpFunc {
-	return func(n *gorql.RqlNode) (s string, err error) {
-		return mt.GetFieldValueTranslatorFunc(op)(n)
 	}
 }
 
@@ -110,51 +104,42 @@ func (mt *MongoTranslator) GetFieldValueTranslatorFunc(op string) TranslatorOpFu
 					if err != nil {
 						return "", err
 					}
-					s += fmt.Sprintf("%v", convertedValue)
+					s += fmt.Sprintf("{'$%s': %v}", op, convertedValue)
 				}
 				s += tempS
 			}
-			sep = fmt.Sprintf(": ")
+			sep = fmt.Sprintf(`: `)
 		}
-		return fmt.Sprintf(`{'$%s': {%s}}`, op, s), nil
+		return fmt.Sprintf(`{%s}`, s), nil
 	}
 }
 
-//func (mt *MongoTranslator) GetOpFirstTranslatorFunc(op string) TranslatorOpFunc {
-//	return func(n *gorql.RqlNode) (s string, err error) {
-//		sep := ""
-//		for _, a := range n.Args {
-//			s += sep
-//			switch v := a.(type) {
-//			case string:
-//				var tempS string
-//				_, err := strconv.ParseInt(v, 10, 64)
-//				if err == nil || IsValidField(v) {
-//					tempS = v
-//				} else if valueAlterFunc != nil {
-//					tempS, err = valueAlterFunc(v)
-//					if err != nil {
-//						return "", err
-//					}
-//				} else {
-//					tempS = Quote(v)
-//				}
-//				s += tempS
-//			case *gorql.RqlNode:
-//				var tempS string
-//				tempS, err = mt.where(v)
-//				if err != nil {
-//					return "", err
-//				}
-//				s = s + tempS
-//			}
-//
-//			sep = ", "
-//		}
-//
-//		return fmt.Sprintf("{'$%s': %s}", op, strings.Join(ops, ", ")), nil
-//	}
-//}
+func (mt *MongoTranslator) GetOpFirstTranslatorFunc(op string) TranslatorOpFunc {
+	return func(n *gorql.RqlNode) (s string, err error) {
+		sep := ""
+		for _, a := range n.Args {
+			s += sep
+			switch v := a.(type) {
+			case *gorql.RqlNode:
+				var tempS string
+				tempS, err = mt.where(v)
+				if err != nil {
+					return "", err
+				}
+				s = s + tempS
+			default:
+				convertedValue, err := convert(v)
+				if err != nil {
+					return "", err
+				}
+				s += fmt.Sprintf("%v", convertedValue)
+			}
+			sep = ", "
+		}
+
+		return fmt.Sprintf("{'$%s': %s}", op, s), nil
+	}
+}
 
 func convert(value interface{}) (interface{}, error) {
 	switch v := value.(type) {
