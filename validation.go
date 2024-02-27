@@ -105,7 +105,10 @@ func (p *Parser) GetFieldValidationFunc() ValidationFunc {
 					if field == nil {
 						return fmt.Errorf("no field is found for node value %s", v)
 					}
-					newVal := field.CovertFn(v)
+					newVal, err := field.CovertFn(v)
+					if err != nil {
+						return fmt.Errorf("encounter field error: %s", err)
+					}
 					n.Args[i] = newVal
 				}
 			case *RqlNode:

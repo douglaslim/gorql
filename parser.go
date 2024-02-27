@@ -163,7 +163,7 @@ type field struct {
 	// Validation for the type. for example, unit8 greater than or equal to 0.
 	ValidateFn func(interface{}) error
 	// ConvertFn converts the given value to the type value.
-	CovertFn func(interface{}) interface{}
+	CovertFn func(interface{}) (interface{}, error)
 }
 
 func NewParser(c *Config) (*Parser, error) {

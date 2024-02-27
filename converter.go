@@ -1,45 +1,52 @@
 package gorql
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 )
 
 // convert float to int.
-func convertInt(v interface{}) interface{} {
-	if s, err := strconv.Atoi(v.(string)); err == nil {
-		return s
+func convertInt(v interface{}) (interface{}, error) {
+	s, err := strconv.Atoi(v.(string))
+	if err != nil {
+		return nil, fmt.Errorf("unable to convert %s to int: %s", v.(string), err)
 	}
-	return v
+	return s, nil
 }
 
 // convert string to float.
-func convertFloat(v interface{}) interface{} {
-	if s, err := strconv.ParseFloat(v.(string), 64); err == nil {
-		return s
+func convertFloat(v interface{}) (interface{}, error) {
+	s, err := strconv.ParseFloat(v.(string), 64)
+	if err != nil {
+		return nil, fmt.Errorf("unable to convert %s to float: %s", v.(string), err)
 	}
-	return v
+	return s, nil
 }
 
 // convert string to time object.
-func convertTime(layout string) func(interface{}) interface{} {
-	return func(v interface{}) interface{} {
-		t, _ := time.Parse(layout, v.(string))
-		return t
+func convertTime(layout string) func(interface{}) (interface{}, error) {
+	return func(v interface{}) (interface{}, error) {
+		t, err := time.Parse(layout, v.(string))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse date layout %s for %s", layout, v.(string))
+		}
+		return t, nil
 	}
 }
 
 // convert string to bool.
-func convertBool(v interface{}) interface{} {
-	if s, err := strconv.ParseBool(v.(string)); err == nil {
-		return s
+func convertBool(v interface{}) (interface{}, error) {
+	s, err := strconv.ParseBool(v.(string))
+	if err != nil {
+		return nil, fmt.Errorf("unable to convert %s to bool: %s", v.(string), err)
 	}
-	return v
+	return s, nil
 }
 
 // nop converter.
-func valueFn(v interface{}) interface{} {
-	return v
+func valueFn(v interface{}) (interface{}, error) {
+	return v, nil
 }
 
 // layouts holds all standard time.Time layouts.
