@@ -77,6 +77,13 @@ var mongodbTests = []MongodbTest{
 		WantParseError:      false,
 		WantTranslatorError: false,
 	},
+	{
+		Name:                `Mixed style translation`,
+		RQL:                 `((eq(foo,42)&ge(price,10))|price=ge=500)&disabled=eq=false`,
+		Expected:            `{'$and': [{'$or': [{'$and': [{'foo': {'$eq': '42'}}, {'price': {'$gte': 10}}]}, {'price': {'$gte': 500}}]}, {'disabled': {'$eq': false}}]}`,
+		WantParseError:      false,
+		WantTranslatorError: false,
+	},
 }
 
 func TestMongodbParser(t *testing.T) {

@@ -150,9 +150,9 @@ func NewMongoTranslator(r *gorql.RqlRootNode) (mt *MongoTranslator) {
 	mt.SetOpFunc(LikeOp, mt.GetFieldValueTranslatorFunc("regex", starToRegexPatternFunc))
 	mt.SetOpFunc(MatchOp, mt.GetFieldValueTranslatorFunc("regex", ilikePatternFunc))
 	mt.SetOpFunc(GtOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(GtOp), convert))
-	//mt.SetOpFunc(LtOp, mt.GetFieldValueTranslatorFunc("<", nil))
-	//mt.SetOpFunc(GeOp, mt.GetFieldValueTranslatorFunc(">=", nil))
-	//mt.SetOpFunc(LeOp, mt.GetFieldValueTranslatorFunc("<=", nil))
+	mt.SetOpFunc(LtOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(LtOp), convert))
+	mt.SetOpFunc(GeOp, mt.GetFieldValueTranslatorFunc("gte", convert))
+	mt.SetOpFunc(LeOp, mt.GetFieldValueTranslatorFunc("lte", convert))
 	mt.SetOpFunc(NotOp, mt.GetOpFirstTranslatorFunc(strings.ToLower(NotOp)))
 	return
 }
