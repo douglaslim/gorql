@@ -14,6 +14,30 @@ type MongoTranslator struct {
 
 type AlterValueFunc func(interface{}) (interface{}, error)
 
+var starToRegexPatternFunc = AlterValueFunc(func(value interface{}) (interface{}, error) {
+	v, ok := value.(string)
+	if !ok {
+		return nil, fmt.Errorf("unable to convert %v to string", value)
+	}
+	newValue := v
+	if len(v) >= 3 && strings.HasPrefix(v, "*") && strings.HasSuffix(v, "*") {
+		newValue = v[1 : len(v)-1]
+	} else if len(v) >= 2 && strings.HasPrefix(v, "*") {
+		newValue = v[1:] + "$"
+	} else if len(v) >= 2 && strings.HasSuffix(v, "*") {
+		newValue = "^" + v[1:len(v)-1]
+	}
+	return convert(newValue)
+})
+
+var convert = AlterValueFunc(func(value interface{}) (interface{}, error) {
+	switch v := value.(type) {
+	case string:
+		return Quote(v), nil
+	}
+	return value, nil
+})
+
 func (mt *MongoTranslator) SetOpFunc(op string, f TranslatorOpFunc) {
 	mt.OpsDic[strings.ToUpper(op)] = f
 }
@@ -106,13 +130,14 @@ func (mt *MongoTranslator) where(n *gorql.RqlNode) (string, error) {
 
 func NewMongoTranslator(r *gorql.RqlRootNode) (mt *MongoTranslator) {
 	mt = &MongoTranslator{r, map[string]TranslatorOpFunc{}}
+
 	mt.SetOpFunc(AndOp, mt.GetAndOrTranslatorOpFunc(strings.ToLower(AndOp)))
 	mt.SetOpFunc(OrOp, mt.GetAndOrTranslatorOpFunc(strings.ToLower(OrOp)))
-	mt.SetOpFunc(NeOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(NeOp)))
-	mt.SetOpFunc(EqOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(EqOp)))
-	//mt.SetOpFunc(LikeOp, mt.GetFieldValueTranslatorFunc("LIKE", starToPercentFunc))
+	mt.SetOpFunc(NeOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(NeOp), convert))
+	mt.SetOpFunc(EqOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(EqOp), convert))
+	mt.SetOpFunc(LikeOp, mt.GetFieldValueTranslatorFunc("regex", starToRegexPatternFunc))
 	//mt.SetOpFunc(MatchOp, mt.GetFieldValueTranslatorFunc("ILIKE", starToPercentFunc))
-	mt.SetOpFunc(GtOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(GtOp)))
+	mt.SetOpFunc(GtOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(GtOp), convert))
 	//mt.SetOpFunc(LtOp, mt.GetFieldValueTranslatorFunc("<", nil))
 	//mt.SetOpFunc(GeOp, mt.GetFieldValueTranslatorFunc(">=", nil))
 	//mt.SetOpFunc(LeOp, mt.GetFieldValueTranslatorFunc("<=", nil))
@@ -143,7 +168,7 @@ func (mt *MongoTranslator) GetAndOrTranslatorOpFunc(op string) TranslatorOpFunc 
 	}
 }
 
-func (mt *MongoTranslator) GetFieldValueTranslatorFunc(op string) TranslatorOpFunc {
+func (mt *MongoTranslator) GetFieldValueTranslatorFunc(op string, alterValueFunc AlterValueFunc) TranslatorOpFunc {
 	return func(n *gorql.RqlNode) (s string, err error) {
 		sep := ""
 		for i, a := range n.Args {
@@ -165,7 +190,7 @@ func (mt *MongoTranslator) GetFieldValueTranslatorFunc(op string) TranslatorOpFu
 						return "", fmt.Errorf("first argument must be a valid field name (arg: %s)", v)
 					}
 				} else {
-					convertedValue, err := convert(v)
+					convertedValue, err := alterValueFunc(v)
 					if err != nil {
 						return "", err
 					}
@@ -204,12 +229,4 @@ func (mt *MongoTranslator) GetOpFirstTranslatorFunc(op string) TranslatorOpFunc 
 
 		return fmt.Sprintf("{'$%s': %s}", op, s), nil
 	}
-}
-
-func convert(value interface{}) (interface{}, error) {
-	switch v := value.(type) {
-	case string:
-		return Quote(v), nil
-	}
-	return value, nil
 }

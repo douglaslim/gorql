@@ -63,6 +63,13 @@ var mongodbTests = []MongodbTest{
 		WantParseError:      false,
 		WantTranslatorError: false,
 	},
+	{
+		Name:                `Basic translation with LIKE operator`,
+		RQL:                 `foo=like=weird`,
+		Expected:            `{'foo': {'$regex': 'weird'}}`,
+		WantParseError:      false,
+		WantTranslatorError: false,
+	},
 }
 
 func TestMongodbParser(t *testing.T) {
