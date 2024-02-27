@@ -11,10 +11,6 @@ import (
 	"time"
 )
 
-var (
-	reservedOps = []string{OffsetOp, LimitOp, SelectOp, SortOp}
-)
-
 const (
 	OffsetOp = "offset"
 	LimitOp  = "limit"
@@ -65,7 +61,7 @@ func (tb TokenBloc) String() (s string) {
 }
 
 func (r *RqlRootNode) parseSpecialOps() {
-	if parseLimit(r.Node, r) || parseSort(r.Node, r) || parseOffset(r.Node, r) || parseFields(r.Node, r) {
+	if parseLimitOffset(r.Node, r) || parseSort(r.Node, r) || parseFields(r.Node, r) {
 		r.Node = nil
 	} else if r.Node != nil {
 		if strings.ToUpper(r.Node.Op) == "AND" {
@@ -73,7 +69,7 @@ func (r *RqlRootNode) parseSpecialOps() {
 			for _, c := range r.Node.Args {
 				switch n := c.(type) {
 				case *RqlNode:
-					isSpecialOps := parseLimit(n, r) || parseSort(n, r) || parseOffset(n, r) || parseFields(n, r)
+					isSpecialOps := parseLimitOffset(n, r) || parseSort(n, r) || parseFields(n, r)
 					if !isSpecialOps {
 						tmpNodeArgs = append(tmpNodeArgs, n)
 					}
@@ -87,24 +83,16 @@ func (r *RqlRootNode) parseSpecialOps() {
 	}
 }
 
-func parseLimit(n *RqlNode, root *RqlRootNode) (isLimitOp bool) {
+func parseLimitOffset(n *RqlNode, root *RqlRootNode) (isLimitOp bool) {
 	if n == nil {
 		return false
 	}
-	if n.Op == LimitOp {
-		root.limit = n.Args[1].(string)
+	if strings.ToLower(n.Op) == LimitOp {
+		root.limit = n.Args[0].(string)
+		if len(n.Args) > 1 {
+			root.offset = n.Args[1].(string)
+		}
 		isLimitOp = true
-	}
-	return
-}
-
-func parseOffset(n *RqlNode, root *RqlRootNode) (isOffsetOp bool) {
-	if n == nil {
-		return false
-	}
-	if n.Op == OffsetOp {
-		root.offset = n.Args[1].(string)
-		isOffsetOp = true
 	}
 	return
 }
@@ -456,9 +444,6 @@ func getBlocNode(tb []TokenString) (*RqlNode, error) {
 		if err != nil {
 			return nil, err
 		}
-	} else if isReservedBloc(tb) {
-		n.Op = tb[0].s
-		n.Args = []interface{}{tb[0].s, tb[2].s}
 	} else if isSimpleEqualBloc(tb) {
 		n.Op = "eq"
 		n.Args = []interface{}{tb[0].s, tb[2].s}
@@ -553,16 +538,6 @@ func isSimpleEqualBloc(tb []TokenString) bool {
 	}
 
 	return isSimple
-}
-
-func isReservedBloc(tb []TokenString) bool {
-	matchReserved := false
-	for _, r := range reservedOps {
-		if tb[0].s == r {
-			matchReserved = true
-		}
-	}
-	return tb[0].t == Ident && tb[1].t == EqualSign && matchReserved
 }
 
 func isDoubleEqualBloc(tb []TokenString) bool {

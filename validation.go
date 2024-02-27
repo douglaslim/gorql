@@ -135,7 +135,7 @@ func (p *Parser) validateSpecialOps(r *RqlRootNode) error {
 			return err
 		}
 	}
-	if len(r.Sort()) > 0 {
+	if p.c != nil && len(r.Sort()) > 0 {
 		err := p.validateSort(r.Sort())
 		if err != nil {
 			return err
@@ -173,7 +173,7 @@ func (p *Parser) validateLimit(l string) error {
 	if limit < 0 {
 		return fmt.Errorf("specified limit is less than zero")
 	}
-	if limit > p.c.LimitMaxValue {
+	if p.c != nil && limit > p.c.LimitMaxValue {
 		return fmt.Errorf("specified limit is more than the max limit %d allowed", p.c.DefaultLimit)
 	}
 	return nil
