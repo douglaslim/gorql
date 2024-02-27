@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -308,6 +310,45 @@ func (p *Parser) Parse(r io.Reader) (root *RqlRootNode, err error) {
 		}
 	}
 	return
+}
+
+// ParseURL constructs an AST from url.Values for code transformation
+func (p *Parser) ParseURL(q url.Values) (root *RqlRootNode, err error) {
+	limit := strconv.Itoa(DefaultLimit)
+	limitValues, ok := q[LimitOp]
+	if ok {
+		if len(limitValues) > 1 {
+			return nil, fmt.Errorf("multiple limit found, please specify only one")
+		}
+		err := p.validateLimit(limitValues[0])
+		if err != nil {
+			return nil, err
+		}
+		limit = limitValues[0]
+		delete(q, LimitOp)
+	}
+
+	offset := "0"
+	offsetValues, ok := q[OffsetOp]
+	if ok {
+		if len(offsetValues) > 1 {
+			return nil, fmt.Errorf("multiple offset found, please specify only one")
+		}
+		err := p.validateOffset(offsetValues[0])
+		if err != nil {
+			return nil, err
+		}
+		offset = offsetValues[0]
+		delete(q, OffsetOp)
+	}
+	rqlQuery, _ := url.QueryUnescape(encodeURLValues(q))
+	root, err = p.Parse(strings.NewReader(rqlQuery))
+	if err != nil {
+		return nil, fmt.Errorf("url parse error: %s", err)
+	}
+	root.limit = limit
+	root.offset = offset
+	return root, nil
 }
 
 // parse recursively return the children node from the tokens
