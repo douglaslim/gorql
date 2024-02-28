@@ -84,6 +84,48 @@ var mongodbTests = []MongodbTest{
 		WantParseError:      false,
 		WantTranslatorError: false,
 	},
+	{
+		Name:                `Empty RQL`,
+		RQL:                 ``,
+		Expected:            ``,
+		WantParseError:      false,
+		WantTranslatorError: false,
+	},
+	{
+		Name:                `Invalid RQL query (Unmanaged RQL operator)`,
+		RQL:                 `foo=missing_operator=42`,
+		Expected:            ``,
+		WantParseError:      false,
+		WantTranslatorError: true,
+	},
+	{
+		Name:                `Invalid RQL query (Unescaped character)`,
+		RQL:                 `like(foo,hello world)`,
+		Expected:            ``,
+		WantParseError:      true,
+		WantTranslatorError: false,
+	},
+	{
+		Name:                `Invalid RQL query (Missing comma)`,
+		RQL:                 `and(not(test=weird),eq(foo,toto)gt(price,10))`,
+		Expected:            ``,
+		WantParseError:      true,
+		WantTranslatorError: false,
+	},
+	{
+		Name:                `Invalid RQL query (Invalid field name)`,
+		RQL:                 `eq(foo%20tot,42)`,
+		Expected:            ``,
+		WantParseError:      true,
+		WantTranslatorError: false,
+	},
+	{
+		Name:                `Invalid RQL query (Invalid field name 2)`,
+		RQL:                 `eq(foo*,toto)`,
+		Expected:            ``,
+		WantParseError:      true,
+		WantTranslatorError: false,
+	},
 }
 
 func TestMongodbParser(t *testing.T) {
