@@ -35,7 +35,7 @@ func (test *MongodbTest) Run(t *testing.T) {
 	mongoTranslator := NewMongoTranslator(rqlNode)
 	s, err := mongoTranslator.Where()
 	if test.WantTranslatorError != (err != nil) {
-		t.Fatalf("(%s) Expecting error :%v\nGot error : %v \n\tSQL = %s", test.Name, test.WantTranslatorError, err, s)
+		t.Fatalf("(%s) Expecting error :%v\nGot error : %v \n\tQuery = %s", test.Name, test.WantTranslatorError, err, s)
 	}
 
 	if s != test.Expected {
