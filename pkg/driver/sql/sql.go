@@ -115,19 +115,19 @@ func NewSqlTranslator(r *gorql.RqlRootNode) (st *Translator) {
 		return strings.Replace(Quote(s), `*`, `%`, -1), nil
 	})
 
-	st.SetOpFunc("AND", st.GetAndOrTranslatorOpFunc("AND"))
-	st.SetOpFunc("OR", st.GetAndOrTranslatorOpFunc("OR"))
+	st.SetOpFunc(driver.AndOp, st.GetAndOrTranslatorOpFunc(driver.AndOp))
+	st.SetOpFunc(driver.OrOp, st.GetAndOrTranslatorOpFunc(driver.OrOp))
 
-	st.SetOpFunc("NE", st.GetEqualityTranslatorOpFunc("!=", "IS NOT"))
-	st.SetOpFunc("EQ", st.GetEqualityTranslatorOpFunc("=", "IS"))
+	st.SetOpFunc(driver.NeOp, st.GetEqualityTranslatorOpFunc("!=", "IS NOT"))
+	st.SetOpFunc(driver.EqOp, st.GetEqualityTranslatorOpFunc("=", "IS"))
 
-	st.SetOpFunc("LIKE", st.GetFieldValueTranslatorFunc("LIKE", starToPercentFunc))
-	st.SetOpFunc("MATCH", st.GetFieldValueTranslatorFunc("ILIKE", starToPercentFunc))
-	st.SetOpFunc("GT", st.GetFieldValueTranslatorFunc(">", nil))
-	st.SetOpFunc("LT", st.GetFieldValueTranslatorFunc("<", nil))
-	st.SetOpFunc("GE", st.GetFieldValueTranslatorFunc(">=", nil))
-	st.SetOpFunc("LE", st.GetFieldValueTranslatorFunc("<=", nil))
-	st.SetOpFunc("NOT", st.GetOpFirstTranslatorFunc("NOT", nil))
+	st.SetOpFunc(driver.LikeOp, st.GetFieldValueTranslatorFunc(driver.LikeOp, starToPercentFunc))
+	st.SetOpFunc(driver.MatchOp, st.GetFieldValueTranslatorFunc("ILIKE", starToPercentFunc))
+	st.SetOpFunc(driver.GtOp, st.GetFieldValueTranslatorFunc(">", nil))
+	st.SetOpFunc(driver.LtOp, st.GetFieldValueTranslatorFunc("<", nil))
+	st.SetOpFunc(driver.GeOp, st.GetFieldValueTranslatorFunc(">=", nil))
+	st.SetOpFunc(driver.LeOp, st.GetFieldValueTranslatorFunc("<=", nil))
+	st.SetOpFunc(driver.NotOp, st.GetOpFirstTranslatorFunc(driver.NotOp, nil))
 
 	return
 }
