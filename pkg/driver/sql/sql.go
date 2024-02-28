@@ -1,8 +1,9 @@
-package driver
+package sql
 
 import (
 	"fmt"
 	"gorql"
+	"gorql/pkg/driver"
 	"net/url"
 	"strconv"
 	"strings"
@@ -10,10 +11,10 @@ import (
 
 type SqlTranslator struct {
 	rootNode  *gorql.RqlRootNode
-	sqlOpsDic map[string]TranslatorOpFunc
+	sqlOpsDic map[string]driver.TranslatorOpFunc
 }
 
-func (st *SqlTranslator) SetOpFunc(op string, f TranslatorOpFunc) {
+func (st *SqlTranslator) SetOpFunc(op string, f driver.TranslatorOpFunc) {
 	st.sqlOpsDic[strings.ToUpper(op)] = f
 }
 
@@ -108,7 +109,7 @@ func (st *SqlTranslator) Sql() (sql string, err error) {
 }
 
 func NewSqlTranslator(r *gorql.RqlRootNode) (st *SqlTranslator) {
-	st = &SqlTranslator{r, map[string]TranslatorOpFunc{}}
+	st = &SqlTranslator{r, map[string]driver.TranslatorOpFunc{}}
 
 	starToPercentFunc := AlterStringFunc(func(s string) (string, error) {
 		return strings.Replace(Quote(s), `*`, `%`, -1), nil
@@ -131,7 +132,7 @@ func NewSqlTranslator(r *gorql.RqlRootNode) (st *SqlTranslator) {
 	return
 }
 
-func (st *SqlTranslator) GetEqualityTranslatorOpFunc(op, specialOp string) TranslatorOpFunc {
+func (st *SqlTranslator) GetEqualityTranslatorOpFunc(op, specialOp string) driver.TranslatorOpFunc {
 	return func(n *gorql.RqlNode) (s string, err error) {
 		value, err := url.QueryUnescape(n.Args[1].(string))
 		if err != nil {
@@ -151,7 +152,7 @@ func (st *SqlTranslator) GetEqualityTranslatorOpFunc(op, specialOp string) Trans
 	}
 }
 
-func (st *SqlTranslator) GetAndOrTranslatorOpFunc(op string) TranslatorOpFunc {
+func (st *SqlTranslator) GetAndOrTranslatorOpFunc(op string) driver.TranslatorOpFunc {
 	return func(n *gorql.RqlNode) (s string, err error) {
 		sep := ""
 
@@ -181,7 +182,7 @@ func (st *SqlTranslator) GetAndOrTranslatorOpFunc(op string) TranslatorOpFunc {
 
 type AlterStringFunc func(string) (string, error)
 
-func (st *SqlTranslator) GetFieldValueTranslatorFunc(op string, valueAlterFunc AlterStringFunc) TranslatorOpFunc {
+func (st *SqlTranslator) GetFieldValueTranslatorFunc(op string, valueAlterFunc AlterStringFunc) driver.TranslatorOpFunc {
 	return func(n *gorql.RqlNode) (s string, err error) {
 		sep := ""
 
@@ -227,7 +228,7 @@ func (st *SqlTranslator) GetFieldValueTranslatorFunc(op string, valueAlterFunc A
 	}
 }
 
-func (st *SqlTranslator) GetOpFirstTranslatorFunc(op string, valueAlterFunc AlterStringFunc) TranslatorOpFunc {
+func (st *SqlTranslator) GetOpFirstTranslatorFunc(op string, valueAlterFunc AlterStringFunc) driver.TranslatorOpFunc {
 	return func(n *gorql.RqlNode) (s string, err error) {
 		sep := ""
 

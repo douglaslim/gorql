@@ -1,15 +1,17 @@
-package driver
+package mongo
 
 import (
 	"fmt"
 	"gorql"
+	"gorql/pkg/driver"
+	"gorql/pkg/driver/sql"
 	"strconv"
 	"strings"
 )
 
 type MongoTranslator struct {
 	rootNode *gorql.RqlRootNode
-	OpsDic   map[string]TranslatorOpFunc
+	OpsDic   map[string]driver.TranslatorOpFunc
 }
 
 type AlterValueFunc func(interface{}) (interface{}, error)
@@ -45,12 +47,12 @@ var ilikePatternFunc = AlterValueFunc(func(value interface{}) (interface{}, erro
 var convert = AlterValueFunc(func(value interface{}) (interface{}, error) {
 	switch v := value.(type) {
 	case string:
-		return Quote(v), nil
+		return sql.Quote(v), nil
 	}
 	return value, nil
 })
 
-func (mt *MongoTranslator) SetOpFunc(op string, f TranslatorOpFunc) {
+func (mt *MongoTranslator) SetOpFunc(op string, f driver.TranslatorOpFunc) {
 	mt.OpsDic[strings.ToUpper(op)] = f
 }
 
@@ -141,29 +143,29 @@ func (mt *MongoTranslator) where(n *gorql.RqlNode) (string, error) {
 }
 
 func NewMongoTranslator(r *gorql.RqlRootNode) (mt *MongoTranslator) {
-	mt = &MongoTranslator{r, map[string]TranslatorOpFunc{}}
+	mt = &MongoTranslator{r, map[string]driver.TranslatorOpFunc{}}
 
-	mt.SetOpFunc(AndOp, mt.GetAndOrTranslatorOpFunc(strings.ToLower(AndOp)))
-	mt.SetOpFunc(OrOp, mt.GetAndOrTranslatorOpFunc(strings.ToLower(OrOp)))
-	mt.SetOpFunc(NeOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(NeOp), convert))
-	mt.SetOpFunc(EqOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(EqOp), convert))
-	mt.SetOpFunc(LikeOp, mt.GetFieldValueTranslatorFunc("regex", starToRegexPatternFunc))
-	mt.SetOpFunc(MatchOp, mt.GetFieldValueTranslatorFunc("regex", ilikePatternFunc))
-	mt.SetOpFunc(GtOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(GtOp), convert))
-	mt.SetOpFunc(LtOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(LtOp), convert))
-	mt.SetOpFunc(GeOp, mt.GetFieldValueTranslatorFunc("gte", convert))
-	mt.SetOpFunc(LeOp, mt.GetFieldValueTranslatorFunc("lte", convert))
-	mt.SetOpFunc(NotOp, mt.GetOpFirstTranslatorFunc(strings.ToLower(NotOp)))
+	mt.SetOpFunc(driver.AndOp, mt.GetAndOrTranslatorOpFunc(strings.ToLower(driver.AndOp)))
+	mt.SetOpFunc(driver.OrOp, mt.GetAndOrTranslatorOpFunc(strings.ToLower(driver.OrOp)))
+	mt.SetOpFunc(driver.NeOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(driver.NeOp), convert))
+	mt.SetOpFunc(driver.EqOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(driver.EqOp), convert))
+	mt.SetOpFunc(driver.LikeOp, mt.GetFieldValueTranslatorFunc("regex", starToRegexPatternFunc))
+	mt.SetOpFunc(driver.MatchOp, mt.GetFieldValueTranslatorFunc("regex", ilikePatternFunc))
+	mt.SetOpFunc(driver.GtOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(driver.GtOp), convert))
+	mt.SetOpFunc(driver.LtOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(driver.LtOp), convert))
+	mt.SetOpFunc(driver.GeOp, mt.GetFieldValueTranslatorFunc("gte", convert))
+	mt.SetOpFunc(driver.LeOp, mt.GetFieldValueTranslatorFunc("lte", convert))
+	mt.SetOpFunc(driver.NotOp, mt.GetOpFirstTranslatorFunc(strings.ToLower(driver.NotOp)))
 	return
 }
 
-func (mt *MongoTranslator) GetAndOrTranslatorOpFunc(op string) TranslatorOpFunc {
+func (mt *MongoTranslator) GetAndOrTranslatorOpFunc(op string) driver.TranslatorOpFunc {
 	return func(n *gorql.RqlNode) (s string, err error) {
 		var ops []string
 		for _, a := range n.Args {
 			switch v := a.(type) {
 			case string:
-				if !IsValidField(v) {
+				if !sql.IsValidField(v) {
 					return "", fmt.Errorf("invalid field name : %s", v)
 				}
 				s = s + v
@@ -180,7 +182,7 @@ func (mt *MongoTranslator) GetAndOrTranslatorOpFunc(op string) TranslatorOpFunc 
 	}
 }
 
-func (mt *MongoTranslator) GetFieldValueTranslatorFunc(op string, alterValueFunc AlterValueFunc) TranslatorOpFunc {
+func (mt *MongoTranslator) GetFieldValueTranslatorFunc(op string, alterValueFunc AlterValueFunc) driver.TranslatorOpFunc {
 	return func(n *gorql.RqlNode) (s string, err error) {
 		sep := ""
 		for i, a := range n.Args {
@@ -196,8 +198,8 @@ func (mt *MongoTranslator) GetFieldValueTranslatorFunc(op string, alterValueFunc
 			default:
 				var tempS string
 				if i == 0 {
-					if IsValidField(v.(string)) {
-						tempS = Quote(v.(string))
+					if sql.IsValidField(v.(string)) {
+						tempS = sql.Quote(v.(string))
 					} else {
 						return "", fmt.Errorf("first argument must be a valid field name (arg: %s)", v)
 					}
@@ -216,7 +218,7 @@ func (mt *MongoTranslator) GetFieldValueTranslatorFunc(op string, alterValueFunc
 	}
 }
 
-func (mt *MongoTranslator) GetOpFirstTranslatorFunc(op string) TranslatorOpFunc {
+func (mt *MongoTranslator) GetOpFirstTranslatorFunc(op string) driver.TranslatorOpFunc {
 	return func(n *gorql.RqlNode) (s string, err error) {
 		sep := ""
 		for _, a := range n.Args {
