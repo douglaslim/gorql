@@ -147,8 +147,8 @@ func (mt *Translator) where(n *gorql.RqlNode) (string, error) {
 func NewMongoTranslator(r *gorql.RqlRootNode) (mt *Translator) {
 	mt = &Translator{r, map[string]driver.TranslatorOpFunc{}}
 
-	mt.SetOpFunc(driver.AndOp, mt.GetAndOrTranslatorOpFunc(strings.ToLower(driver.AndOp)))
-	mt.SetOpFunc(driver.OrOp, mt.GetAndOrTranslatorOpFunc(strings.ToLower(driver.OrOp)))
+	mt.SetOpFunc(driver.AndOp, mt.GetJoinTranslatorOpFunc(strings.ToLower(driver.AndOp)))
+	mt.SetOpFunc(driver.OrOp, mt.GetJoinTranslatorOpFunc(strings.ToLower(driver.OrOp)))
 	mt.SetOpFunc(driver.NeOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(driver.NeOp), convert))
 	mt.SetOpFunc(driver.EqOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(driver.EqOp), convert))
 	mt.SetOpFunc(driver.LikeOp, mt.GetFieldValueTranslatorFunc("regex", starToRegexPatternFunc))
@@ -161,7 +161,7 @@ func NewMongoTranslator(r *gorql.RqlRootNode) (mt *Translator) {
 	return
 }
 
-func (mt *Translator) GetAndOrTranslatorOpFunc(op string) driver.TranslatorOpFunc {
+func (mt *Translator) GetJoinTranslatorOpFunc(op string) driver.TranslatorOpFunc {
 	return func(n *gorql.RqlNode) (s string, err error) {
 		var ops []string
 		for _, a := range n.Args {
