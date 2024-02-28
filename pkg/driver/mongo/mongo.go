@@ -167,11 +167,6 @@ func (mt *Translator) GetJoinTranslatorOpFunc(op string) driver.TranslatorOpFunc
 		var ops []string
 		for _, a := range n.Args {
 			switch v := a.(type) {
-			case string:
-				if !isValidField(v) {
-					return "", fmt.Errorf("invalid field name : %s", v)
-				}
-				s = s + v
 			case *gorql.RqlNode:
 				var tempS string
 				tempS, err = mt.where(v)
@@ -179,6 +174,8 @@ func (mt *Translator) GetJoinTranslatorOpFunc(op string) driver.TranslatorOpFunc
 					return "", err
 				}
 				ops = append(ops, tempS)
+			default:
+				return "", fmt.Errorf("%s operation need query as arguments", op)
 			}
 		}
 		return fmt.Sprintf(`{"$%s": [%s]}`, op, strings.Join(ops, ", ")), nil
@@ -190,31 +187,21 @@ func (mt *Translator) GetFieldValueTranslatorFunc(op string, alterValueFunc Alte
 		sep := ""
 		for i, a := range n.Args {
 			s += sep
-			switch v := a.(type) {
-			case *gorql.RqlNode:
-				var tempS string
-				tempS, err = mt.where(v)
+			var tempS string
+			if i == 0 {
+				if isValidField(a.(string)) {
+					tempS = quote(a.(string))
+				} else {
+					return "", fmt.Errorf("first argument must be a valid field name (arg: %v)", a)
+				}
+			} else {
+				convertedValue, err := alterValueFunc(a)
 				if err != nil {
 					return "", err
 				}
-				s = s + tempS
-			default:
-				var tempS string
-				if i == 0 {
-					if isValidField(v.(string)) {
-						tempS = quote(v.(string))
-					} else {
-						return "", fmt.Errorf("first argument must be a valid field name (arg: %s)", v)
-					}
-				} else {
-					convertedValue, err := alterValueFunc(v)
-					if err != nil {
-						return "", err
-					}
-					s += fmt.Sprintf(`{"$%s": %v}`, op, convertedValue)
-				}
-				s += tempS
+				s += fmt.Sprintf(`{"$%s": %v}`, op, convertedValue)
 			}
+			s += tempS
 			sep = fmt.Sprintf(`: `)
 		}
 		return fmt.Sprintf(`{%s}`, s), nil
