@@ -64,7 +64,7 @@ Here is a definition of the common operators:
 * and(&lt;query>,&lt;query>,...) - Applies all the given queries
 * or(&lt;query>,&lt;query>,...) - The union of the given queries
 * in(&lt;property>,&lt;array-of-values>) - Filters for objects where the specified property's value is in the provided array
-* contains(&lt;property>,&lt;value | expression>) - Filters for objects where the specified property's value is an array and the array contains any value that equals the provided value or satisfies the provided expression.
+* like(&lt;property>,&lt;value>) - Filters records where property contains value as a substring. This applies to strings or arrays of strings.
 * eq(&lt;property>,&lt;value>) - Filters for objects where the specified property's value is equal to the provided value
 * lt(&lt;property>,&lt;value>) - Filters for objects where the specified property's value is less than the provided value
 * le(&lt;property>,&lt;value>) - Filters for objects where the specified property's value is less than or equal to the provided value
