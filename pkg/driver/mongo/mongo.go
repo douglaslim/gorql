@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"gorql"
 	"gorql/pkg/driver"
-	"gorql/pkg/driver/sql"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Translator struct {
@@ -41,13 +41,15 @@ var ilikePatternFunc = AlterValueFunc(func(value interface{}) (interface{}, erro
 	if err != nil {
 		return nil, err
 	}
-	return fmt.Sprintf(`%v, '$options': 'i'`, newVal), nil
+	return fmt.Sprintf(`%v, "$options": "i"`, newVal), nil
 })
 
 var convert = AlterValueFunc(func(value interface{}) (interface{}, error) {
 	switch v := value.(type) {
 	case string:
-		return sql.Quote(v), nil
+		return quote(v), nil
+	case time.Time:
+		return newDateTimeFromTime(v), nil
 	}
 	return value, nil
 })
@@ -102,11 +104,11 @@ func (mt *Translator) Sort() (sort string) {
 		if item.Desc {
 			direction = -1
 		}
-		sort += fmt.Sprintf(`'%s': %d`, item.By, direction)
+		sort += fmt.Sprintf(`"%s": %d`, item.By, direction)
 		sep = ", "
 	}
 	if len(sort) > 0 {
-		return fmt.Sprintf("{'$sort': {%s}}", sort)
+		return fmt.Sprintf(`{"$sort": {%s}}`, sort)
 	}
 	return
 }
@@ -118,7 +120,7 @@ func (mt *Translator) Limit() (limit string) {
 	l := mt.rootNode.Limit()
 	if l != "" && strings.ToUpper(l) != "INFINITY" {
 		v, _ := strconv.Atoi(l)
-		limit = fmt.Sprintf("{'$limit': %d}", v)
+		limit = fmt.Sprintf(`{"$limit": %d}`, v)
 	}
 	return
 }
@@ -126,7 +128,7 @@ func (mt *Translator) Limit() (limit string) {
 func (mt *Translator) Offset() (offset string) {
 	if mt.rootNode != nil && mt.rootNode.Offset() != "" {
 		v, _ := strconv.Atoi(mt.rootNode.Offset())
-		offset = fmt.Sprintf("{'$skip': %d}", v)
+		offset = fmt.Sprintf(`{"$skip": %d}`, v)
 	}
 	return
 }
@@ -165,7 +167,7 @@ func (mt *Translator) GetAndOrTranslatorOpFunc(op string) driver.TranslatorOpFun
 		for _, a := range n.Args {
 			switch v := a.(type) {
 			case string:
-				if !sql.IsValidField(v) {
+				if !isValidField(v) {
 					return "", fmt.Errorf("invalid field name : %s", v)
 				}
 				s = s + v
@@ -178,7 +180,7 @@ func (mt *Translator) GetAndOrTranslatorOpFunc(op string) driver.TranslatorOpFun
 				ops = append(ops, tempS)
 			}
 		}
-		return fmt.Sprintf("{'$%s': [%s]}", op, strings.Join(ops, ", ")), nil
+		return fmt.Sprintf(`{"$%s": [%s]}`, op, strings.Join(ops, ", ")), nil
 	}
 }
 
@@ -198,8 +200,8 @@ func (mt *Translator) GetFieldValueTranslatorFunc(op string, alterValueFunc Alte
 			default:
 				var tempS string
 				if i == 0 {
-					if sql.IsValidField(v.(string)) {
-						tempS = sql.Quote(v.(string))
+					if isValidField(v.(string)) {
+						tempS = quote(v.(string))
 					} else {
 						return "", fmt.Errorf("first argument must be a valid field name (arg: %s)", v)
 					}
@@ -208,7 +210,7 @@ func (mt *Translator) GetFieldValueTranslatorFunc(op string, alterValueFunc Alte
 					if err != nil {
 						return "", err
 					}
-					s += fmt.Sprintf("{'$%s': %v}", op, convertedValue)
+					s += fmt.Sprintf(`{"$%s": %v}`, op, convertedValue)
 				}
 				s += tempS
 			}
@@ -241,6 +243,23 @@ func (mt *Translator) GetOpFirstTranslatorFunc(op string) driver.TranslatorOpFun
 			sep = ", "
 		}
 
-		return fmt.Sprintf("{'$%s': %s}", op, s), nil
+		return fmt.Sprintf(`{"$%s": %s}`, op, s), nil
 	}
+}
+
+func quote(s string) string {
+	return `"` + strings.Replace(s, `"`, `""`, -1) + `"`
+}
+
+func isValidField(s string) bool {
+	for _, ch := range s {
+		if !gorql.IsLetter(ch) && !gorql.IsDigit(ch) && ch != '_' && ch != '-' && ch != '.' {
+			return false
+		}
+	}
+	return true
+}
+
+func newDateTimeFromTime(t time.Time) int64 {
+	return t.Unix()*1e3 + int64(t.Nanosecond())/1e6
 }

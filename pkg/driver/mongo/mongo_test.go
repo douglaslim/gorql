@@ -4,6 +4,7 @@ import (
 	"gorql"
 	"strings"
 	"testing"
+	"time"
 )
 
 type MongodbTest struct {
@@ -15,10 +16,11 @@ type MongodbTest struct {
 }
 
 type MongoTestModel struct {
-	Foo      string  `rql:"filter"`
-	Price    float64 `rql:"filter,sort"`
-	Disabled bool    `rql:"filter"`
-	Length   int     `rql:"filter,sort"`
+	Foo      string    `rql:"filter"`
+	Price    float64   `rql:"filter,sort"`
+	Disabled bool      `rql:"filter"`
+	Length   int       `rql:"filter,sort"`
+	Now      time.Time `rql:"filter,layout=2006-01-02"`
 }
 
 func (test *MongodbTest) Run(t *testing.T) {
@@ -45,42 +47,49 @@ var mongodbTests = []MongodbTest{
 	{
 		Name:                `Basic translation with double equal operators`,
 		RQL:                 `and(foo=eq=42,price=eq=10)`,
-		Expected:            `{'$and': [{'foo': {'$eq': '42'}}, {'price': {'$eq': 10}}]}`,
+		Expected:            `{"$and": [{"foo": {"$eq": "42"}}, {"price": {"$eq": 10}}]}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
 	},
 	{
 		Name:                `Basic translation with func style operators`,
 		RQL:                 `and(eq(foo,42),gt(price,10),not(disabled=false))`,
-		Expected:            `{'$and': [{'foo': {'$eq': '42'}}, {'price': {'$gt': 10}}, {'$not': {'disabled': {'$eq': false}}}]}`,
+		Expected:            `{"$and": [{"foo": {"$eq": "42"}}, {"price": {"$gt": 10}}, {"$not": {"disabled": {"$eq": false}}}]}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
 	},
 	{
 		Name:                `Basic translation with func simple equal operators`,
 		RQL:                 `foo=42&price=10`,
-		Expected:            `{'$and': [{'foo': {'$eq': '42'}}, {'price': {'$eq': 10}}]}`,
+		Expected:            `{"$and": [{"foo": {"$eq": "42"}}, {"price": {"$eq": 10}}]}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
 	},
 	{
 		Name:                `Basic translation with LIKE operator`,
 		RQL:                 `foo=like=weird`,
-		Expected:            `{'foo': {'$regex': 'weird'}}`,
+		Expected:            `{"foo": {"$regex": "weird"}}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
 	},
 	{
 		Name:                `Basic translation with ILIKE operator`,
 		RQL:                 `foo=match=weird`,
-		Expected:            `{'foo': {'$regex': 'weird', '$options': 'i'}}`,
+		Expected:            `{"foo": {"$regex": "weird", "$options": "i"}}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
 	},
 	{
 		Name:                `Mixed style translation`,
 		RQL:                 `((eq(foo,42)&ge(price,10))|price=ge=500)&disabled=eq=false`,
-		Expected:            `{'$and': [{'$or': [{'$and': [{'foo': {'$eq': '42'}}, {'price': {'$gte': 10}}]}, {'price': {'$gte': 500}}]}, {'disabled': {'$eq': false}}]}`,
+		Expected:            `{"$and": [{"$or": [{"$and": [{"foo": {"$eq": "42"}}, {"price": {"$gte": 10}}]}, {"price": {"$gte": 500}}]}, {"disabled": {"$eq": false}}]}`,
+		WantParseError:      false,
+		WantTranslatorError: false,
+	},
+	{
+		Name:                `Translation with date fields`,
+		RQL:                 `now=gt=2018-01-01`,
+		Expected:            `{"now": {"$gt": 1514764800000}}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
 	},
