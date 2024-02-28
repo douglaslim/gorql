@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-type MongoTranslator struct {
+type Translator struct {
 	rootNode *gorql.RqlRootNode
 	OpsDic   map[string]driver.TranslatorOpFunc
 }
@@ -52,15 +52,15 @@ var convert = AlterValueFunc(func(value interface{}) (interface{}, error) {
 	return value, nil
 })
 
-func (mt *MongoTranslator) SetOpFunc(op string, f driver.TranslatorOpFunc) {
+func (mt *Translator) SetOpFunc(op string, f driver.TranslatorOpFunc) {
 	mt.OpsDic[strings.ToUpper(op)] = f
 }
 
-func (mt *MongoTranslator) DeleteOpFunc(op string) {
+func (mt *Translator) DeleteOpFunc(op string) {
 	delete(mt.OpsDic, strings.ToUpper(op))
 }
 
-func (mt *MongoTranslator) Mongo() (mongo string, err error) {
+func (mt *Translator) Mongo() (mongo string, err error) {
 	var where string
 	where, err = mt.Where()
 	if err != nil {
@@ -84,14 +84,14 @@ func (mt *MongoTranslator) Mongo() (mongo string, err error) {
 	return mongo, nil
 }
 
-func (mt *MongoTranslator) Where() (string, error) {
+func (mt *Translator) Where() (string, error) {
 	if mt.rootNode == nil {
 		return "", nil
 	}
 	return mt.where(mt.rootNode.Node)
 }
 
-func (mt *MongoTranslator) Sort() (sort string) {
+func (mt *Translator) Sort() (sort string) {
 	if mt.rootNode == nil {
 		return
 	}
@@ -111,7 +111,7 @@ func (mt *MongoTranslator) Sort() (sort string) {
 	return
 }
 
-func (mt *MongoTranslator) Limit() (limit string) {
+func (mt *Translator) Limit() (limit string) {
 	if mt.rootNode == nil {
 		return
 	}
@@ -123,7 +123,7 @@ func (mt *MongoTranslator) Limit() (limit string) {
 	return
 }
 
-func (mt *MongoTranslator) Offset() (offset string) {
+func (mt *Translator) Offset() (offset string) {
 	if mt.rootNode != nil && mt.rootNode.Offset() != "" {
 		v, _ := strconv.Atoi(mt.rootNode.Offset())
 		offset = fmt.Sprintf("{'$skip': %d}", v)
@@ -131,7 +131,7 @@ func (mt *MongoTranslator) Offset() (offset string) {
 	return
 }
 
-func (mt *MongoTranslator) where(n *gorql.RqlNode) (string, error) {
+func (mt *Translator) where(n *gorql.RqlNode) (string, error) {
 	if n == nil {
 		return ``, nil
 	}
@@ -142,8 +142,8 @@ func (mt *MongoTranslator) where(n *gorql.RqlNode) (string, error) {
 	return f(n)
 }
 
-func NewMongoTranslator(r *gorql.RqlRootNode) (mt *MongoTranslator) {
-	mt = &MongoTranslator{r, map[string]driver.TranslatorOpFunc{}}
+func NewMongoTranslator(r *gorql.RqlRootNode) (mt *Translator) {
+	mt = &Translator{r, map[string]driver.TranslatorOpFunc{}}
 
 	mt.SetOpFunc(driver.AndOp, mt.GetAndOrTranslatorOpFunc(strings.ToLower(driver.AndOp)))
 	mt.SetOpFunc(driver.OrOp, mt.GetAndOrTranslatorOpFunc(strings.ToLower(driver.OrOp)))
@@ -159,7 +159,7 @@ func NewMongoTranslator(r *gorql.RqlRootNode) (mt *MongoTranslator) {
 	return
 }
 
-func (mt *MongoTranslator) GetAndOrTranslatorOpFunc(op string) driver.TranslatorOpFunc {
+func (mt *Translator) GetAndOrTranslatorOpFunc(op string) driver.TranslatorOpFunc {
 	return func(n *gorql.RqlNode) (s string, err error) {
 		var ops []string
 		for _, a := range n.Args {
@@ -182,7 +182,7 @@ func (mt *MongoTranslator) GetAndOrTranslatorOpFunc(op string) driver.Translator
 	}
 }
 
-func (mt *MongoTranslator) GetFieldValueTranslatorFunc(op string, alterValueFunc AlterValueFunc) driver.TranslatorOpFunc {
+func (mt *Translator) GetFieldValueTranslatorFunc(op string, alterValueFunc AlterValueFunc) driver.TranslatorOpFunc {
 	return func(n *gorql.RqlNode) (s string, err error) {
 		sep := ""
 		for i, a := range n.Args {
@@ -218,7 +218,7 @@ func (mt *MongoTranslator) GetFieldValueTranslatorFunc(op string, alterValueFunc
 	}
 }
 
-func (mt *MongoTranslator) GetOpFirstTranslatorFunc(op string) driver.TranslatorOpFunc {
+func (mt *Translator) GetOpFirstTranslatorFunc(op string) driver.TranslatorOpFunc {
 	return func(n *gorql.RqlNode) (s string, err error) {
 		sep := ""
 		for _, a := range n.Args {
