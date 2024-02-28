@@ -8,23 +8,16 @@ import (
 )
 
 type MongodbTest struct {
-	Name                string // Name of the test
-	RQL                 string // Input RQL query
-	Expected            string // Expected Output Expected
-	WantParseError      bool   // Test should raise an error when parsing the RQL query
-	WantTranslatorError bool   // Test should raise an error when translating to Expected
-}
-
-type MongoTestModel struct {
-	Foo      string    `rql:"filter"`
-	Price    float64   `rql:"filter,sort"`
-	Disabled bool      `rql:"filter"`
-	Length   int       `rql:"filter,sort"`
-	Now      time.Time `rql:"filter,layout=2006-01-02"`
+	Name                string      // Name of the test
+	RQL                 string      // Input RQL query
+	Expected            string      // Expected Output Expected
+	WantParseError      bool        // Test should raise an error when parsing the RQL query
+	WantTranslatorError bool        // Test should raise an error when translating to Expected
+	Model               interface{} // Input Model for query
 }
 
 func (test *MongodbTest) Run(t *testing.T) {
-	p, err := gorql.NewParser(&gorql.Config{Model: MongoTestModel{}})
+	p, err := gorql.NewParser(&gorql.Config{Model: test.Model})
 	if err != nil {
 		t.Fatalf("(%s) New parser error :%v\n", test.Name, err)
 	}
@@ -50,6 +43,10 @@ var mongodbTests = []MongodbTest{
 		Expected:            `{"$and": [{"foo": {"$eq": "42"}}, {"price": {"$eq": 10}}]}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
+		Model: new(struct {
+			Foo   string  `rql:"filter"`
+			Price float64 `rql:"filter"`
+		}),
 	},
 	{
 		Name:                `Basic translation with func style operators`,
@@ -57,6 +54,11 @@ var mongodbTests = []MongodbTest{
 		Expected:            `{"$and": [{"foo": {"$eq": "42"}}, {"price": {"$gt": 10}}, {"$not": {"disabled": {"$eq": false}}}]}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
+		Model: new(struct {
+			Foo      string  `rql:"filter"`
+			Price    float64 `rql:"filter"`
+			Disabled bool    `rql:"filter"`
+		}),
 	},
 	{
 		Name:                `Basic translation with func simple equal operators`,
@@ -64,6 +66,10 @@ var mongodbTests = []MongodbTest{
 		Expected:            `{"$and": [{"foo": {"$eq": "42"}}, {"price": {"$eq": 10}}]}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
+		Model: new(struct {
+			Foo   string  `rql:"filter"`
+			Price float64 `rql:"filter"`
+		}),
 	},
 	{
 		Name:                `Basic translation with LIKE operator`,
@@ -71,13 +77,19 @@ var mongodbTests = []MongodbTest{
 		Expected:            `{"foo": {"$regex": "weird"}}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
+		Model: new(struct {
+			Foo string `rql:"filter"`
+		}),
 	},
 	{
 		Name:                `Basic translation with ILIKE operator`,
-		RQL:                 `foo=match=weird`,
-		Expected:            `{"foo": {"$regex": "weird", "$options": "i"}}`,
+		RQL:                 `foo=match=john%20doe`,
+		Expected:            `{"foo": {"$regex": "john doe", "$options": "i"}}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
+		Model: new(struct {
+			Foo string `rql:"filter"`
+		}),
 	},
 	{
 		Name:                `Basic translation with IN Operator`,
@@ -85,6 +97,9 @@ var mongodbTests = []MongodbTest{
 		Expected:            `{"foo": {"$in": ["hello", "this is low", "wow"]}}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
+		Model: new(struct {
+			Foo string `rql:"filter"`
+		}),
 	},
 	{
 		Name:                `Mixed style translation`,
@@ -92,6 +107,11 @@ var mongodbTests = []MongodbTest{
 		Expected:            `{"$and": [{"$or": [{"$and": [{"foo": {"$eq": "42"}}, {"price": {"$gte": 10}}]}, {"price": {"$gte": 500}}]}, {"disabled": {"$eq": false}}]}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
+		Model: new(struct {
+			Foo      string  `rql:"filter"`
+			Price    float64 `rql:"filter"`
+			Disabled bool    `rql:"filter"`
+		}),
 	},
 	{
 		Name:                `Translation with date fields`,
@@ -99,6 +119,9 @@ var mongodbTests = []MongodbTest{
 		Expected:            `{"now": {"$gt": 1514764800000}}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
+		Model: new(struct {
+			Now time.Time `rql:"filter,layout=2006-01-02"`
+		}),
 	},
 	{
 		Name:                `Empty RQL`,
@@ -106,6 +129,7 @@ var mongodbTests = []MongodbTest{
 		Expected:            ``,
 		WantParseError:      false,
 		WantTranslatorError: false,
+		Model:               new(struct{}),
 	},
 	{
 		Name:                `Invalid RQL query (Unmanaged RQL operator)`,
@@ -113,6 +137,9 @@ var mongodbTests = []MongodbTest{
 		Expected:            ``,
 		WantParseError:      false,
 		WantTranslatorError: true,
+		Model: new(struct {
+			Foo string `rql:"filter"`
+		}),
 	},
 	{
 		Name:                `Invalid RQL query (Unescaped character)`,
@@ -120,6 +147,9 @@ var mongodbTests = []MongodbTest{
 		Expected:            ``,
 		WantParseError:      true,
 		WantTranslatorError: false,
+		Model: new(struct {
+			Foo string `rql:"filter"`
+		}),
 	},
 	{
 		Name:                `Invalid RQL query (Missing comma)`,
@@ -127,6 +157,7 @@ var mongodbTests = []MongodbTest{
 		Expected:            ``,
 		WantParseError:      true,
 		WantTranslatorError: false,
+		Model:               new(struct{}),
 	},
 	{
 		Name:                `Invalid RQL query (Invalid field name)`,
@@ -134,6 +165,7 @@ var mongodbTests = []MongodbTest{
 		Expected:            ``,
 		WantParseError:      true,
 		WantTranslatorError: false,
+		Model:               new(struct{}),
 	},
 	{
 		Name:                `Invalid RQL query (Invalid field name 2)`,
@@ -141,6 +173,7 @@ var mongodbTests = []MongodbTest{
 		Expected:            ``,
 		WantParseError:      true,
 		WantTranslatorError: false,
+		Model:               new(struct{}),
 	},
 }
 
