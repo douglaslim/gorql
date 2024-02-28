@@ -7,6 +7,25 @@ It provides a simple and intuitive API for building RQL queries dynamically.
 ## Installation
     go get -u github.com/douglaslim/gorql
 
+## RQL Rules
+
+Here is a definition of the common operators:
+
+* sort(&lt;+|->&lt;property) - Sorts by the given property in order specified by the prefix (+ for ascending, - for descending)
+* select(&lt;property>,&lt;property>,...) - Trims each object down to the set of properties defined in the arguments
+* match(&lt;property>,&lt;value | expression>) - Filters for objects where the specified property's value is an array and the array contains any value that equals the provided value or satisfies the provided expression.
+* limit(count,offset) - Returns the given range of objects from the result set
+* and(&lt;query>,&lt;query>,...) - Applies all the given queries
+* or(&lt;query>,&lt;query>,...) - The union of the given queries
+* in(&lt;property>,&lt;array-of-values>) - Filters for objects where the specified property's value is in the provided array
+* contains(&lt;property>,&lt;value | expression>) - Filters for objects where the specified property's value is an array and the array contains any value that equals the provided value or satisfies the provided expression.
+* eq(&lt;property>,&lt;value>) - Filters for objects where the specified property's value is equal to the provided value
+* lt(&lt;property>,&lt;value>) - Filters for objects where the specified property's value is less than the provided value
+* le(&lt;property>,&lt;value>) - Filters for objects where the specified property's value is less than or equal to the provided value
+* gt(&lt;property>,&lt;value>) - Filters for objects where the specified property's value is greater than the provided value
+* ge(&lt;property>,&lt;value>) - Filters for objects where the specified property's value is greater than or equal to the provided value
+* ne(&lt;property>,&lt;value>) - Filters for objects where the specified property's value is not equal to the provided value
+
 ## Usage
 Here's a quick example of how to use gorql to construct an RQL query and translate to mongo query:
 ```
