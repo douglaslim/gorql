@@ -14,6 +14,7 @@ const (
 	GeOp    = "GE"
 	LeOp    = "LE"
 	NotOp   = "NOT"
+	InOp    = "IN"
 )
 
 type TranslatorOpFunc func(*gorql.RqlNode) (string, error)

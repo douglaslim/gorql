@@ -158,6 +158,7 @@ func NewMongoTranslator(r *gorql.RqlRootNode) (mt *Translator) {
 	mt.SetOpFunc(driver.GeOp, mt.GetFieldValueTranslatorFunc("gte", convert))
 	mt.SetOpFunc(driver.LeOp, mt.GetFieldValueTranslatorFunc("lte", convert))
 	mt.SetOpFunc(driver.NotOp, mt.GetOpFirstTranslatorFunc(strings.ToLower(driver.NotOp)))
+	mt.SetOpFunc(driver.InOp, mt.GetSliceTranslatorFunc(strings.ToLower(driver.InOp), convert))
 	return
 }
 
@@ -244,6 +245,30 @@ func (mt *Translator) GetOpFirstTranslatorFunc(op string) driver.TranslatorOpFun
 		}
 
 		return fmt.Sprintf(`{"$%s": %s}`, op, s), nil
+	}
+}
+
+func (mt *Translator) GetSliceTranslatorFunc(op string, alterValueFunc AlterValueFunc) driver.TranslatorOpFunc {
+	return func(n *gorql.RqlNode) (s string, err error) {
+		var values []string
+		var field string
+		for i, a := range n.Args {
+			if i == 0 {
+				if isValidField(a.(string)) {
+					field = quote(a.(string))
+				} else {
+					return "", fmt.Errorf("first argument must be a valid field name (arg: %s)", a)
+				}
+			} else {
+				convertedValue, err := alterValueFunc(a)
+				if err != nil {
+					return "", err
+				}
+				values = append(values, fmt.Sprintf("%v", convertedValue))
+			}
+		}
+		s += fmt.Sprintf(`%s: {"$%s": [%v]}`, field, op, strings.Join(values, ", "))
+		return fmt.Sprintf(`{%s}`, s), nil
 	}
 }
 

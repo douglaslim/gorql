@@ -80,6 +80,13 @@ var mongodbTests = []MongodbTest{
 		WantTranslatorError: false,
 	},
 	{
+		Name:                `Basic translation with IN Operator`,
+		RQL:                 `in(foo,hello,this%20is%20low,wow)`,
+		Expected:            `{"foo": {"$in": ["hello", "this is low", "wow"]}}`,
+		WantParseError:      false,
+		WantTranslatorError: false,
+	},
+	{
 		Name:                `Mixed style translation`,
 		RQL:                 `((eq(foo,42)&ge(price,10))|price=ge=500)&disabled=eq=false`,
 		Expected:            `{"$and": [{"$or": [{"$and": [{"foo": {"$eq": "42"}}, {"price": {"$gte": 10}}]}, {"price": {"$gte": 500}}]}, {"disabled": {"$eq": false}}]}`,
