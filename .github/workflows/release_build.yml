@@ -24,15 +24,6 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: Test with Go
-        run: go test -json > TestResults-${{ matrix.go-version }}.json
-
-      - name: Upload Go test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: Go-results-${{ matrix.go-version }}
-          path: TestResults-${{ matrix.go-version }}.json
-
       # run goreleaser
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v4
