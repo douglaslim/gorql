@@ -1,7 +1,7 @@
 package sql
 
 import (
-	"gorql"
+	"github.com/douglaslim/gorql"
 	"strings"
 	"testing"
 )

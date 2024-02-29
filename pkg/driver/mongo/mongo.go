@@ -2,8 +2,8 @@ package mongo
 
 import (
 	"fmt"
-	"gorql"
-	"gorql/pkg/driver"
+	"github.com/douglaslim/gorql"
+	"github.com/douglaslim/gorql/pkg/driver"
 	"strconv"
 	"strings"
 	"time"

@@ -1,6 +1,6 @@
 package driver
 
-import "gorql"
+import "github.com/douglaslim/gorql"
 
 const (
 	AndOp   = "AND"

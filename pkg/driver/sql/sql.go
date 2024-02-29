@@ -2,8 +2,8 @@ package sql
 
 import (
 	"fmt"
-	"gorql"
-	"gorql/pkg/driver"
+	"github.com/douglaslim/gorql"
+	"github.com/douglaslim/gorql/pkg/driver"
 	"net/url"
 	"strconv"
 	"strings"
