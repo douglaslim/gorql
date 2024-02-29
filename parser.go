@@ -50,7 +50,11 @@ func (r *RqlRootNode) Sort() []Sort {
 	return r.sorts
 }
 
-var ErrBlocValue = fmt.Errorf("bloc is a value")
+var (
+	ErrBlocValue            = errors.New("bloc is a value")
+	ErrParenthesisMalformed = errors.New("parenthesis bloc is malformed")
+	ErrUnregonizedBloc      = errors.New("unrecognized bloc")
+)
 
 type TokenBloc []TokenString
 
@@ -361,6 +365,9 @@ func parse(ts []TokenString) (node *RqlNode, err error) {
 		return nil, nil
 	}
 	if isParenthesisBloc(ts) && findClosingIndex(ts[1:]) == len(ts)-2 {
+		if len(ts)-2 < 0 {
+			return nil, ErrParenthesisMalformed
+		}
 		ts = ts[1 : len(ts)-1]
 	}
 
@@ -471,6 +478,10 @@ func getTokenOp(t Token) string {
 func getBlocNode(tb []TokenString) (*RqlNode, error) {
 	n := &RqlNode{}
 
+	if len(tb) < 1 {
+		return nil, fmt.Errorf("%s: %s", ErrUnregonizedBloc, TokenBloc(tb).String())
+	}
+
 	if isValue(tb) {
 		return nil, ErrBlocValue
 	} else if isFuncStyleBloc(tb) {
@@ -478,6 +489,9 @@ func getBlocNode(tb []TokenString) (*RqlNode, error) {
 		n.Op = tb[0].s
 		tb = tb[2:]
 		ci := findClosingIndex(tb)
+		if ci < 0 {
+			return nil, ErrParenthesisMalformed
+		}
 		if len(tb) > ci+1 && tb[ci+1].t != ClosingParenthesis && tb[ci+1].t != Comma {
 			return nil, fmt.Errorf("unrecognized func style bloc (missing comma?)")
 		}
@@ -487,7 +501,11 @@ func getBlocNode(tb []TokenString) (*RqlNode, error) {
 		}
 	} else if isSimpleEqualBloc(tb) {
 		n.Op = "eq"
-		n.Args = []interface{}{tb[0].s, tb[2].s}
+		value := ""
+		if len(tb) > 2 {
+			value = tb[2].s
+		}
+		n.Args = []interface{}{tb[0].s, value}
 	} else if isDoubleEqualBloc(tb) {
 		n.Op = tb[2].s
 		n.Args = []interface{}{tb[0].s}
@@ -495,6 +513,9 @@ func getBlocNode(tb []TokenString) (*RqlNode, error) {
 		if tbLen == 4 {
 			n.Args = append(n.Args, ``)
 		} else if isParenthesisBloc(tb[4:]) && findClosingIndex(tb[5:]) == tbLen-6 {
+			if tbLen <= 5 {
+				return nil, ErrParenthesisMalformed
+			}
 			args, err := parseFuncArgs(tb[5 : tbLen-1])
 			if err != nil {
 				return nil, err
@@ -509,7 +530,7 @@ func getBlocNode(tb []TokenString) (*RqlNode, error) {
 		}
 
 	} else {
-		return nil, fmt.Errorf("Unrecognized bloc : " + TokenBloc(tb).String())
+		return nil, fmt.Errorf("%s : %s", ErrUnregonizedBloc, TokenBloc(tb).String())
 	}
 
 	return n, nil
@@ -573,6 +594,9 @@ func findAllTokenIndexes(tb []TokenString, token Token) (indexes []int) {
 }
 
 func isSimpleEqualBloc(tb []TokenString) bool {
+	if len(tb) == 0 {
+		return false
+	}
 	isSimple := tb[0].t == Ident && tb[1].t == EqualSign
 	if len(tb) > 3 {
 		isSimple = isSimple && tb[3].t != EqualSign
