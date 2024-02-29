@@ -179,7 +179,7 @@ func isIdent(ch rune) bool {
 // isSpecialChar returns true if the rune is a special character.
 func isSpecialChar(ch rune) bool {
 	return ch == '*' || ch == '_' || ch == '%' ||
-		ch == '+' || ch == '-' || ch == '.'
+		ch == '+' || ch == '-' || ch == '.' || ch == ':'
 }
 
 // IsLetter returns true if the rune is a letter.
