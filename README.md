@@ -125,7 +125,5 @@ func main() {
 
 Contributions are welcome! If you encounter any bugs, issues, or have feature requests, please open an issue. Pull requests are also appreciated.
 
-Before contributing, please review the contribution guidelines.
-
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
