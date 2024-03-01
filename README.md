@@ -72,6 +72,19 @@ Here is a definition of the common operators:
 * ge(&lt;property>,&lt;value>) - Filters for objects where the specified property's value is greater than or equal to the provided value
 * ne(&lt;property>,&lt;value>) - Filters for objects where the specified property's value is not equal to the provided value
 
+## Drivers
+
+`gorql` currently supports the following drivers:
+
+* SQL: Generate SQL queries for SQL databases.
+```go
+    func NewSqlTranslator(r *gorql.RqlRootNode) (st *Translator)
+```
+* MongoDB: Generate MongoDB queries for MongoDB databases. Depending on the MongoDB library ([mongo-driver](https://github.com/mongodb/mongo-go-driver),[mgo](https://github.com/globalsign/mgo)) you are using, you would need to unmarshal the JSON string of the MongoDB query.
+```go
+    func NewMongoTranslator(r *gorql.RqlRootNode) (mt *Translator)
+```
+
 ## Usage
 Here's a quick example of how to use gorql to construct an RQL query and translate to mongo query:
 ```
