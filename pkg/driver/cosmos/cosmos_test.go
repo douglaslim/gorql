@@ -56,14 +56,14 @@ var tests = []Test{
 			Foo   string  `rql:"filter"`
 			Price float64 `rql:"filter"`
 		}),
-		ExpectedSQL: `WHERE ((c.foo = @1) AND (c.price > @2))`,
+		ExpectedSQL: `WHERE ((c.foo = @p1) AND (c.price > @p2))`,
 		ExpectedArgs: []interface{}{
 			Param{
-				Name:  "@1",
+				Name:  "@p1",
 				Value: "42",
 			},
 			Param{
-				Name:  "@2",
+				Name:  "@p2",
 				Value: float64(10),
 			},
 		},
@@ -78,18 +78,18 @@ var tests = []Test{
 			Price    float64 `rql:"filter"`
 			Disabled bool    `rql:"filter"`
 		}),
-		ExpectedSQL: `WHERE ((c.foo = @1) AND (c.price > @2) AND NOT((c.disabled = @3)))`,
+		ExpectedSQL: `WHERE ((c.foo = @p1) AND (c.price > @p2) AND NOT((c.disabled = @p3)))`,
 		ExpectedArgs: []interface{}{
 			Param{
-				Name:  "@1",
+				Name:  "@p1",
 				Value: "42",
 			},
 			Param{
-				Name:  "@2",
+				Name:  "@p2",
 				Value: float64(10),
 			},
 			Param{
-				Name:  "@3",
+				Name:  "@p3",
 				Value: false,
 			},
 		},
@@ -103,14 +103,14 @@ var tests = []Test{
 			Foo   string  `rql:"filter"`
 			Price float64 `rql:"filter"`
 		}),
-		ExpectedSQL: `WHERE ((c.foo = @1) AND (c.price = @2))`,
+		ExpectedSQL: `WHERE ((c.foo = @p1) AND (c.price = @p2))`,
 		ExpectedArgs: []interface{}{
 			Param{
-				Name:  "@1",
+				Name:  "@p1",
 				Value: "42",
 			},
 			Param{
-				Name:  "@2",
+				Name:  "@p2",
 				Value: float64(10),
 			},
 		},
@@ -125,10 +125,10 @@ var tests = []Test{
 			Price  float64 `rql:"sort"`
 			Length int     `rql:"sort"`
 		}),
-		ExpectedSQL: `WHERE ((c.foo = @1)) ORDER BY c.price, c.length DESC`,
+		ExpectedSQL: `WHERE ((c.foo = @p1)) ORDER BY c.price, c.length DESC`,
 		ExpectedArgs: []interface{}{
 			Param{
-				Name:  "@1",
+				Name:  "@p1",
 				Value: "42",
 			},
 		},
@@ -163,22 +163,22 @@ var tests = []Test{
 			Price    float64 `rql:"filter"`
 			Disabled bool    `rql:"filter"`
 		}),
-		ExpectedSQL: `WHERE ((((c.foo = @1) AND (c.price > @2)) OR (c.price >= @3)) AND (c.disabled = @4))`,
+		ExpectedSQL: `WHERE ((((c.foo = @p1) AND (c.price > @p2)) OR (c.price >= @p3)) AND (c.disabled = @p4))`,
 		ExpectedArgs: []interface{}{
 			Param{
-				Name:  "@1",
+				Name:  "@p1",
 				Value: "42",
 			},
 			Param{
-				Name:  "@2",
+				Name:  "@p2",
 				Value: float64(10),
 			},
 			Param{
-				Name:  "@3",
+				Name:  "@p3",
 				Value: float64(500),
 			},
 			Param{
-				Name:  "@4",
+				Name:  "@p4",
 				Value: false,
 			},
 		},
@@ -191,10 +191,10 @@ var tests = []Test{
 		Model: new(struct {
 			Foo string `rql:"filter"`
 		}),
-		ExpectedSQL: `WHERE (c.foo LIKE @1)`,
+		ExpectedSQL: `WHERE (c.foo LIKE @p1)`,
 		ExpectedArgs: []interface{}{
 			Param{
-				Name:  "@1",
+				Name:  "@p1",
 				Value: "toto';SELECT column IN table",
 			},
 		},

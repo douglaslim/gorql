@@ -204,7 +204,7 @@ func (ct *Translator) GetFieldValueTranslatorFunc(op string, valueAlterFunc Alte
 						return "", fmt.Errorf("first argument must be a valid field name (arg: %s)", v)
 					}
 				} else {
-					placholder := fmt.Sprintf("@%s", strconv.Itoa(len(ct.args)+1))
+					placholder := fmt.Sprintf("@p%s", strconv.Itoa(len(ct.args)+1))
 					var value = v
 					if valueAlterFunc != nil {
 						value, err = valueAlterFunc(v)
