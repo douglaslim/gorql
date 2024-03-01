@@ -55,7 +55,7 @@ func (ct *Translator) Limit() (limit string) {
 }
 
 func (ct *Translator) Offset() (sql string) {
-	if ct.rootNode != nil {
+	if ct.rootNode == nil {
 		return
 	}
 	return ct.rootNode.Offset()
