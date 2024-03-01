@@ -100,9 +100,6 @@ func (p *Parser) GetFieldValidationFunc() ValidationFunc {
 					if !ok || !f.Filterable {
 						return fmt.Errorf("field name (arg: %s) is not filterable", v)
 					}
-					if !IsValidField(v) {
-						return fmt.Errorf("field name (arg: %s) is not valid", v)
-					}
 					field = f
 					if field.ReplaceWith != "" {
 						n.Args[i] = field.ReplaceWith
