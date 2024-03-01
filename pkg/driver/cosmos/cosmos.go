@@ -32,6 +32,7 @@ func (ct *Translator) Where() (string, error) {
 	if ct.rootNode == nil {
 		return "", nil
 	}
+	ct.args = make([]interface{}, 0)
 	return ct.where(ct.rootNode.Node)
 }
 
