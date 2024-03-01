@@ -150,6 +150,8 @@ type Parser struct {
 type field struct {
 	// Name of the column.
 	Name string
+	// Has a "replacewith" option in the tag. If present, the name of the column will be converted to this name
+	ReplaceWith string
 	// Has a "sort" option in the tag.
 	Sortable bool
 	// Has a "filter" option in the tag.
@@ -229,6 +231,8 @@ func (p *Parser) parseField(sf reflect.StructField) error {
 			f.Filterable = true
 		case strings.HasPrefix(opt, "column"):
 			f.Name = strings.TrimPrefix(opt, "column=")
+		case strings.HasPrefix(opt, "replacewith"):
+			f.ReplaceWith = strings.TrimPrefix(opt, "replacewith=")
 		case strings.HasPrefix(opt, "layout"):
 			layout = strings.TrimPrefix(opt, "layout=")
 			// if it's one of the standard layouts, like: RFC822 or Kitchen.

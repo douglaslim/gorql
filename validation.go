@@ -100,7 +100,13 @@ func (p *Parser) GetFieldValidationFunc() ValidationFunc {
 					if !ok || !f.Filterable {
 						return fmt.Errorf("field name (arg: %s) is not filterable", v)
 					}
+					if !IsValidField(v) {
+						return fmt.Errorf("field name (arg: %s) is not valid", v)
+					}
 					field = f
+					if field.ReplaceWith != "" {
+						n.Args[i] = field.ReplaceWith
+					}
 				} else {
 					if field == nil {
 						return fmt.Errorf("no field is found for node value %s", v)
@@ -177,4 +183,13 @@ func (p *Parser) validateLimit(l string) error {
 		return fmt.Errorf("specified limit is more than the max limit %d allowed", p.c.DefaultLimit)
 	}
 	return nil
+}
+
+func IsValidField(s string) bool {
+	for _, ch := range s {
+		if !IsLetter(ch) && !IsDigit(ch) && ch != '_' && ch != '-' && ch != '.' {
+			return false
+		}
+	}
+	return true
 }
