@@ -84,6 +84,10 @@ Here is a definition of the common operators:
 ```go
     func NewMongoTranslator(r *gorql.RqlRootNode) (mt *Translator)
 ```
+* Cosmos: Generate CosmosDB queries for Azure [Cosmos](https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/query/) databases.
+```go
+    func NewCosmosTranslator(r *gorql.RqlRootNode) (ct *Translator)
+```
 
 ## Usage
 Here's a quick example of how to use gorql to construct an RQL query and translate to mongo query:
