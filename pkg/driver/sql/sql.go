@@ -112,7 +112,7 @@ func NewSqlTranslator(r *gorql.RqlRootNode) (st *Translator) {
 	st = &Translator{r, map[string]driver.TranslatorOpFunc{}}
 
 	starToPercentFunc := AlterStringFunc(func(s string) (string, error) {
-		return strings.Replace(Quote(s), `*`, `%`, -1), nil
+		return strings.Replace(quote(s), `*`, `%`, -1), nil
 	})
 
 	st.SetOpFunc(driver.AndOp, st.GetAndOrTranslatorOpFunc(driver.AndOp))
@@ -141,7 +141,7 @@ func (st *Translator) GetEqualityTranslatorOpFunc(op, specialOp string) driver.T
 
 		if value == `null` || value == `true` || value == `false` {
 			field := n.Args[0].(string)
-			if !IsValidField(field) {
+			if !gorql.IsValidField(field) {
 				return ``, fmt.Errorf("invalid field name : %s", field)
 			}
 
@@ -160,7 +160,7 @@ func (st *Translator) GetAndOrTranslatorOpFunc(op string) driver.TranslatorOpFun
 			s = s + sep
 			switch v := a.(type) {
 			case string:
-				if !IsValidField(v) {
+				if !gorql.IsValidField(v) {
 					return "", fmt.Errorf("invalid field name : %s", v)
 				}
 				s = s + v
@@ -192,7 +192,7 @@ func (st *Translator) GetFieldValueTranslatorFunc(op string, valueAlterFunc Alte
 			case string:
 				var tempS string
 				if i == 0 {
-					if IsValidField(v) {
+					if gorql.IsValidField(v) {
 						tempS = v
 					} else {
 						return "", fmt.Errorf("first argument must be a valid field name (arg: %s)", v)
@@ -207,7 +207,7 @@ func (st *Translator) GetFieldValueTranslatorFunc(op string, valueAlterFunc Alte
 							return "", err
 						}
 					} else {
-						tempS = Quote(v)
+						tempS = quote(v)
 					}
 				}
 
@@ -238,7 +238,7 @@ func (st *Translator) GetOpFirstTranslatorFunc(op string, valueAlterFunc AlterSt
 			case string:
 				var tempS string
 				_, err := strconv.ParseInt(v, 10, 64)
-				if err == nil || IsValidField(v) {
+				if err == nil || gorql.IsValidField(v) {
 					tempS = v
 				} else if valueAlterFunc != nil {
 					tempS, err = valueAlterFunc(v)
@@ -246,7 +246,7 @@ func (st *Translator) GetOpFirstTranslatorFunc(op string, valueAlterFunc AlterSt
 						return "", err
 					}
 				} else {
-					tempS = Quote(v)
+					tempS = quote(v)
 				}
 
 				s += tempS
@@ -266,16 +266,6 @@ func (st *Translator) GetOpFirstTranslatorFunc(op string, valueAlterFunc AlterSt
 	}
 }
 
-func IsValidField(s string) bool {
-	for _, ch := range s {
-		if !gorql.IsLetter(ch) && !gorql.IsDigit(ch) && ch != '_' && ch != '-' && ch != '.' {
-			return false
-		}
-	}
-
-	return true
-}
-
-func Quote(s string) string {
+func quote(s string) string {
 	return `'` + strings.Replace(s, `'`, `''`, -1) + `'`
 }

@@ -189,7 +189,7 @@ func (mt *Translator) GetFieldValueTranslatorFunc(op string, alterValueFunc Alte
 			s += sep
 			var tempS string
 			if i == 0 {
-				if isValidField(a.(string)) {
+				if gorql.IsValidField(a.(string)) {
 					tempS = quote(a.(string))
 				} else {
 					return "", fmt.Errorf("first argument must be a valid field name (arg: %v)", a)
@@ -241,7 +241,7 @@ func (mt *Translator) GetSliceTranslatorFunc(op string, alterValueFunc AlterValu
 		var field string
 		for i, a := range n.Args {
 			if i == 0 {
-				if isValidField(a.(string)) {
+				if gorql.IsValidField(a.(string)) {
 					field = quote(a.(string))
 				} else {
 					return "", fmt.Errorf("first argument must be a valid field name (arg: %s)", a)
@@ -261,15 +261,6 @@ func (mt *Translator) GetSliceTranslatorFunc(op string, alterValueFunc AlterValu
 
 func quote(s string) string {
 	return `"` + strings.Replace(s, `"`, `""`, -1) + `"`
-}
-
-func isValidField(s string) bool {
-	for _, ch := range s {
-		if !gorql.IsLetter(ch) && !gorql.IsDigit(ch) && ch != '_' && ch != '-' && ch != '.' {
-			return false
-		}
-	}
-	return true
 }
 
 func newDateTimeFromTime(t time.Time) int64 {
