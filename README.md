@@ -70,7 +70,7 @@ Here is a definition of the common operators:
 * le(&lt;property>,&lt;value>) - Filters for objects where the specified property's value is less than or equal to the provided value
 * gt(&lt;property>,&lt;value>) - Filters for objects where the specified property's value is greater than the provided value
 * ge(&lt;property>,&lt;value>) - Filters for objects where the specified property's value is greater than or equal to the provided value
-* ne(&lt;property>,&lt;value>) - Filters for objects where the specified property's value is not equal to the provided value
+* not(&lt;query>,&lt;query>,...) - Filters for objects where the results of the query that is passed to this operator is inverted
 
 ## Drivers
 
