@@ -66,7 +66,7 @@ func (tb TokenBloc) String() (s string) {
 }
 
 func (r *RqlRootNode) parseSpecialOps() {
-	if parseLimitOffset(r.Node, r) || parseSort(r.Node, r) || parseFields(r.Node, r) {
+	if parseLimitOffset(r.Node, r) || parseSort(r.Node, r) || parseFields(r.Node, r) || parseOffset(r.Node, r) {
 		r.Node = nil
 	} else if r.Node != nil {
 		if strings.ToUpper(r.Node.Op) == "AND" {
@@ -74,7 +74,7 @@ func (r *RqlRootNode) parseSpecialOps() {
 			for _, c := range r.Node.Args {
 				switch n := c.(type) {
 				case *RqlNode:
-					isSpecialOps := parseLimitOffset(n, r) || parseSort(n, r) || parseFields(n, r)
+					isSpecialOps := parseLimitOffset(n, r) || parseSort(n, r) || parseFields(n, r) || parseOffset(n, r)
 					if !isSpecialOps {
 						tmpNodeArgs = append(tmpNodeArgs, n)
 					}
@@ -98,6 +98,17 @@ func parseLimitOffset(n *RqlNode, root *RqlRootNode) (isLimitOp bool) {
 			root.offset = n.Args[1].(string)
 		}
 		isLimitOp = true
+	}
+	return
+}
+
+func parseOffset(n *RqlNode, root *RqlRootNode) (isOffsetOp bool) {
+	if n == nil {
+		return false
+	}
+	if strings.ToLower(n.Op) == OffsetOp {
+		root.offset = n.Args[0].(string)
+		isOffsetOp = true
 	}
 	return
 }

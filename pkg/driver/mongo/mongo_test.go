@@ -171,3 +171,38 @@ func TestMongodbParser(t *testing.T) {
 		test.Run(t)
 	}
 }
+
+func TestParserSortOffsetLimit(t *testing.T) {
+	name := "Sort, offset and limit"
+	model := new(struct {
+		Foo    string  `rql:"filter"`
+		Price  float64 `rql:"sort"`
+		Length int     `rql:"sort"`
+	})
+	p, err := gorql.NewParser(&gorql.Config{Model: model})
+	if err != nil {
+		t.Fatalf("(%s) New parser error :%v\n", name, err)
+	}
+	rqlNode, err := p.Parse(strings.NewReader("eq(foo,42)&$sort=+price,-length&$limit=10&$offset=20"))
+	if err != nil {
+		t.Fatalf("(%s) Expected no error\nGot error : %v", name, err)
+	}
+	mongoTranslator := NewMongoTranslator(rqlNode)
+	l := mongoTranslator.Limit()
+	expectedLimit := `{"$limit": 10}`
+	if l != expectedLimit {
+		t.Fatalf("(%s) Translated Mongo limit doesn’t match the expected one %s vs %s", name, l, expectedLimit)
+	}
+
+	o := mongoTranslator.Offset()
+	expectedOffset := `{"$offset": 20}`
+	if l != expectedLimit {
+		t.Fatalf("(%s) Translated Mongo offset doesn’t match the expected one %s vs %s", name, o, expectedOffset)
+	}
+
+	s := mongoTranslator.Sort()
+	expectedSort := `{"$sort": {"price": 1, "length": -1}}`
+	if s != expectedSort {
+		t.Fatalf("(%s) Translated Mongo sort doesn’t match the expected one %s vs %s", name, s, expectedSort)
+	}
+}

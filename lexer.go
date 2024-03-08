@@ -17,19 +17,19 @@ const (
 	Ident // fields, function names
 
 	// Reserved characters
-	Space              //
-	Ampersand          // &
-	OpeningParenthesis // (
-	ClosingParenthesis // )
-	Comma              // ,
-	EqualSign          // =
-	Slash              // /
-	SemiColon          // ;
-	QuestionMark       // ?
-	AtSymbol           // @
-	Pipe               // |
-	OpeningSquareBracket
-	ClosingSquareBracket
+	Space                //
+	Ampersand            // &
+	OpeningParenthesis   // (
+	ClosingParenthesis   // )
+	Comma                // ,
+	EqualSign            // =
+	Slash                // /
+	SemiColon            // ;
+	QuestionMark         // ?
+	AtSymbol             // @
+	Pipe                 // |
+	OpeningSquareBracket // [
+	ClosingSquareBracket // ]
 
 	// Keywords
 	And
@@ -185,7 +185,8 @@ func isIdent(ch rune) bool {
 // isSpecialChar returns true if the rune is a special character.
 func isSpecialChar(ch rune) bool {
 	return ch == '*' || ch == '_' || ch == '%' ||
-		ch == '+' || ch == '-' || ch == '.' || ch == ':'
+		ch == '+' || ch == '-' || ch == '.' ||
+		ch == ':' || ch == '$'
 }
 
 // IsLetter returns true if the rune is a letter.

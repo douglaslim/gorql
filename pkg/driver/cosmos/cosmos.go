@@ -97,6 +97,17 @@ func (ct *Translator) Sql() (sql string, err error) {
 	if len(sort) > 0 {
 		sql += sort
 	}
+
+	limit := ct.Limit()
+	if len(limit) > 0 {
+		sql += fmt.Sprintf(" LIMIT %s", limit)
+	}
+
+	offset := ct.Offset()
+	if len(offset) > 0 {
+		sql += fmt.Sprintf(" OFFSET %s", offset)
+	}
+
 	return sql, nil
 }
 

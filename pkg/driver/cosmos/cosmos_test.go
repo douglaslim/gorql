@@ -97,14 +97,14 @@ var tests = []Test{
 		WantTranslatorError: false,
 	},
 	{
-		Name: `Sort and limit`,
-		RQL:  `eq(foo,42)&sort(+price,-length)&limit(10,20)`,
+		Name: `Sort, offset and limit`,
+		RQL:  `eq(foo,42)&$sort=+price,-length&$limit=10&$offset=20`,
 		Model: new(struct {
 			Foo    string  `rql:"filter"`
 			Price  float64 `rql:"sort"`
 			Length int     `rql:"sort"`
 		}),
-		ExpectedSQL: `WHERE ((c.foo = @p1)) ORDER BY c.price, c.length DESC`,
+		ExpectedSQL: `WHERE ((c.foo = @p1)) ORDER BY c.price, c.length DESC LIMIT 10 OFFSET 20`,
 		ExpectedArgs: []interface{}{
 			Param{
 				Name:  "@p1",
