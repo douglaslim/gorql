@@ -57,9 +57,6 @@ Note that all rules are applied to pointers as well. It means, if you have a fie
 
 Here is a definition of the common operators:
 
-* sort(&lt;+|->&lt;property) - Sorts by the given property in order specified by the prefix (+ for ascending, - for descending)
-* select(&lt;property>,&lt;property>,...) - Trims each object down to the set of properties defined in the arguments
-* limit(count,offset) - Returns the given range of objects from the result set
 * and(&lt;query>,&lt;query>,...) - Applies all the given queries
 * or(&lt;query>,&lt;query>,...) - The union of the given queries
 * in(&lt;property>,&lt;array-of-values>) - Filters for objects where the specified property's value is in the provided array
@@ -71,6 +68,13 @@ Here is a definition of the common operators:
 * gt(&lt;property>,&lt;value>) - Filters for objects where the specified property's value is greater than the provided value
 * ge(&lt;property>,&lt;value>) - Filters for objects where the specified property's value is greater than or equal to the provided value
 * not(&lt;query>,&lt;query>,...) - Filters for objects where the results of the query that is passed to this operator is inverted
+
+There are some special operators defined as well and their definition is listed as follows:
+
+* $sort=&lt;+|->&lt;property>,... - Sorts by the given property in order specified by the prefix (+ for ascending, - for descending)
+* $select=&lt;property>,&lt;property>,... - Trims each object down to the set of properties defined in the arguments
+* $limit=&lt;property> - Returns the given range of objects from the result set
+* $offset=&lt;property> - Determines the starting point for fetching data within a result set
 
 ## Drivers
 
@@ -106,7 +110,7 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("New parser error :%s", err))
 	}
-	query := `and(eq(foo,3),lt(price,10))&sort(+price)&limit(10,20)`
+	query := `and(eq(foo,3),lt(price,10))&$sort=+price&$limit=10&$offset=20`
 	rqlNode, err := p.Parse(strings.NewReader(query))
 	if err != nil {
 		panic(err)
