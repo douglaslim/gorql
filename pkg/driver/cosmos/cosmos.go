@@ -135,6 +135,7 @@ func NewCosmosTranslator(r *gorql.RqlRootNode) (st *Translator) {
 	st.SetOpFunc(driver.GeOp, st.GetFieldValueTranslatorFunc(">=", convert))
 	st.SetOpFunc(driver.LeOp, st.GetFieldValueTranslatorFunc("<=", convert))
 	st.SetOpFunc(driver.NotOp, st.GetOpFirstTranslatorFunc(driver.NotOp, convert))
+	st.SetOpFunc(driver.InOp, st.GetSliceTranslatorFunc("ARRAY_CONTAINS", convert))
 
 	return
 }
@@ -277,6 +278,36 @@ func (ct *Translator) GetOpFirstTranslatorFunc(op string, valueAlterFunc AlterVa
 			sep = " AND "
 		}
 
+		return op + "(" + s + ")", nil
+	}
+}
+
+func (ct *Translator) GetSliceTranslatorFunc(op string, alterValueFunc AlterValueFunc) driver.TranslatorOpFunc {
+	return func(n *gorql.RqlNode) (s string, err error) {
+		var values []string
+		var field string
+		var placeholder string
+		for i, a := range n.Args {
+			if i == 0 {
+				if gorql.IsValidField(a.(string)) {
+					field = fmt.Sprintf("c.%s", a.(string))
+				} else {
+					return "", fmt.Errorf("first argument must be a valid field name (arg: %s)", a)
+				}
+			} else {
+				placeholder = fmt.Sprintf("@p%s", strconv.Itoa(len(ct.args)+1))
+				convertedValue, err := alterValueFunc(a)
+				if err != nil {
+					return "", err
+				}
+				values = append(values, fmt.Sprintf("%v", convertedValue))
+			}
+		}
+		ct.args = append(ct.args, Param{
+			Name:  placeholder,
+			Value: values,
+		})
+		s += fmt.Sprintf(`%s, %s, false`, placeholder, field)
 		return op + "(" + s + ")", nil
 	}
 }

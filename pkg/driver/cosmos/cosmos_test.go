@@ -135,6 +135,22 @@ var tests = []Test{
 		WantTranslatorError: false,
 	},
 	{
+		Name: `Basic translation for IN operator`,
+		RQL:  `in(foo,bar,john,doe)`,
+		Model: new(struct {
+			Foo string `rql:"filter"`
+		}),
+		ExpectedSQL: `WHERE ARRAY_CONTAINS(@p1, c.foo, false)`,
+		ExpectedArgs: []interface{}{
+			Param{
+				Name:  "@p1",
+				Value: []string{"bar", "john", "doe"},
+			},
+		},
+		WantParseError:      false,
+		WantTranslatorError: false,
+	},
+	{
 		Name: `Mixed style translation`,
 		RQL:  `((eq(foo,42)&gt(price,10))|ge(price,500))&eq(disabled,false)`,
 		Model: new(struct {
