@@ -40,7 +40,7 @@ var mongodbTests = []MongodbTest{
 	{
 		Name:                `Basic translation with func style operators`,
 		RQL:                 `and(eq(foo,42),gt(price,10),not(disabled=false))`,
-		Expected:            `{"$and": [{"foo": {"$eq": "42"}}, {"price": {"$gt": 10}}, {"$not": {"disabled": {"$eq": false}}}]}`,
+		Expected:            `{"$and": [{"foo": {"$eq": "42"}}, {"price": {"$gt": 10}}, {"$nor": [{"disabled": {"$eq": false}}]}]}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
 		Model: new(struct {

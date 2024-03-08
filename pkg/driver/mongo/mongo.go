@@ -157,7 +157,7 @@ func NewMongoTranslator(r *gorql.RqlRootNode) (mt *Translator) {
 	mt.SetOpFunc(driver.LtOp, mt.GetFieldValueTranslatorFunc(strings.ToLower(driver.LtOp), convert))
 	mt.SetOpFunc(driver.GeOp, mt.GetFieldValueTranslatorFunc("gte", convert))
 	mt.SetOpFunc(driver.LeOp, mt.GetFieldValueTranslatorFunc("lte", convert))
-	mt.SetOpFunc(driver.NotOp, mt.GetOpFirstTranslatorFunc(strings.ToLower(driver.NotOp)))
+	mt.SetOpFunc(driver.NotOp, mt.GetJoinTranslatorOpFunc("nor"))
 	mt.SetOpFunc(driver.InOp, mt.GetSliceTranslatorFunc(strings.ToLower(driver.InOp), convert))
 	return
 }
@@ -205,33 +205,6 @@ func (mt *Translator) GetFieldValueTranslatorFunc(op string, alterValueFunc Alte
 			sep = fmt.Sprintf(`: `)
 		}
 		return fmt.Sprintf(`{%s}`, s), nil
-	}
-}
-
-func (mt *Translator) GetOpFirstTranslatorFunc(op string) driver.TranslatorOpFunc {
-	return func(n *gorql.RqlNode) (s string, err error) {
-		sep := ""
-		for _, a := range n.Args {
-			s += sep
-			switch v := a.(type) {
-			case *gorql.RqlNode:
-				var tempS string
-				tempS, err = mt.where(v)
-				if err != nil {
-					return "", err
-				}
-				s = s + tempS
-			default:
-				convertedValue, err := convert(v)
-				if err != nil {
-					return "", err
-				}
-				s += fmt.Sprintf("%v", convertedValue)
-			}
-			sep = ", "
-		}
-
-		return fmt.Sprintf(`{"$%s": %s}`, op, s), nil
 	}
 }
 
