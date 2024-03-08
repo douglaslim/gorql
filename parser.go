@@ -592,7 +592,3 @@ func isSimpleEqualBloc(tb []TokenString) bool {
 
 	return isSimple
 }
-
-func isDoubleEqualBloc(tb []TokenString) bool {
-	return tb[0].t == Ident && tb[1].t == EqualSign && tb[2].t == Ident && tb[3].t == EqualSign
-}
