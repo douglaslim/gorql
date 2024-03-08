@@ -37,13 +37,6 @@ func (test *Test) Run(t *testing.T) {
 
 var tests = []Test{
 	{
-		Name:                `Basic translation with double equal operators`,
-		RQL:                 `and(foo=eq=42,price=gt=10)`,
-		SQL:                 `WHERE ((foo = 42) AND (price > 10))`,
-		WantParseError:      false,
-		WantTranslatorError: false,
-	},
-	{
 		Name:                `Basic translation with func style operators`,
 		RQL:                 `and(eq(foo,42),gt(price,10),not(disabled))`,
 		SQL:                 `WHERE ((foo = 42) AND (price > 10) AND NOT(disabled))`,
@@ -73,21 +66,21 @@ var tests = []Test{
 	},
 	{
 		Name:                `LIKE empty string`,
-		RQL:                 `foo=like=`,
+		RQL:                 `like(foo,)`,
 		SQL:                 `WHERE (foo LIKE '')`,
 		WantParseError:      false,
 		WantTranslatorError: false,
 	},
 	{
 		Name:                `Mixed style translation`,
-		RQL:                 `((eq(foo,42)&gt(price,10))|price=ge=500)&disabled=eq=false`,
+		RQL:                 `((eq(foo,42)&gt(price,10))|ge(price,500))&eq(disabled,false)`,
 		SQL:                 `WHERE ((((foo = 42) AND (price > 10)) OR (price >= 500)) AND (disabled IS FALSE))`,
 		WantParseError:      false,
 		WantTranslatorError: false,
 	},
 	{
 		Name:                `Try a simple SQL injection`,
-		RQL:                 `foo=like=toto%27%3BSELECT%20column%20IN%20table`,
+		RQL:                 `like(foo,toto%27%3BSELECT%20column%20IN%20table)`,
 		SQL:                 `WHERE (foo LIKE 'toto'';SELECT column IN table')`,
 		WantParseError:      false,
 		WantTranslatorError: false,
@@ -101,7 +94,7 @@ var tests = []Test{
 	},
 	{
 		Name:                `Invalid RQL query (Unmanaged RQL operator)`,
-		RQL:                 `foo=missing_operator=42`,
+		RQL:                 `missing_operator(foo,42)`,
 		SQL:                 ``,
 		WantParseError:      false,
 		WantTranslatorError: true,

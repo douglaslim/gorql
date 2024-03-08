@@ -38,17 +38,6 @@ func (test *MongodbTest) Run(t *testing.T) {
 
 var mongodbTests = []MongodbTest{
 	{
-		Name:                `Basic translation with double equal operators`,
-		RQL:                 `and(foo=eq=42,price=eq=10)`,
-		Expected:            `{"$and": [{"foo": {"$eq": "42"}}, {"price": {"$eq": 10}}]}`,
-		WantParseError:      false,
-		WantTranslatorError: false,
-		Model: new(struct {
-			Foo   string  `rql:"filter"`
-			Price float64 `rql:"filter"`
-		}),
-	},
-	{
 		Name:                `Basic translation with func style operators`,
 		RQL:                 `and(eq(foo,42),gt(price,10),not(disabled=false))`,
 		Expected:            `{"$and": [{"foo": {"$eq": "42"}}, {"price": {"$gt": 10}}, {"$not": {"disabled": {"$eq": false}}}]}`,
@@ -73,7 +62,7 @@ var mongodbTests = []MongodbTest{
 	},
 	{
 		Name:                `Basic translation with LIKE operator`,
-		RQL:                 `foo=like=weird`,
+		RQL:                 `like(foo,weird)`,
 		Expected:            `{"foo": {"$regex": "weird"}}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
@@ -83,7 +72,7 @@ var mongodbTests = []MongodbTest{
 	},
 	{
 		Name:                `Basic translation with ILIKE operator`,
-		RQL:                 `foo=match=john%20doe`,
+		RQL:                 `match(foo,john%20doe)`,
 		Expected:            `{"foo": {"$regex": "john doe", "$options": "i"}}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
@@ -103,7 +92,7 @@ var mongodbTests = []MongodbTest{
 	},
 	{
 		Name:                `Mixed style translation`,
-		RQL:                 `((eq(foo,42)&ge(price,10))|price=ge=500)&disabled=eq=false`,
+		RQL:                 `((eq(foo,42)&ge(price,10))|ge(price,500))&eq(disabled,false)`,
 		Expected:            `{"$and": [{"$or": [{"$and": [{"foo": {"$eq": "42"}}, {"price": {"$gte": 10}}]}, {"price": {"$gte": 500}}]}, {"disabled": {"$eq": false}}]}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
@@ -115,7 +104,7 @@ var mongodbTests = []MongodbTest{
 	},
 	{
 		Name:                `Translation with date fields`,
-		RQL:                 `now=gt=2018-01-01`,
+		RQL:                 `gt(now,2018-01-01)`,
 		Expected:            `{"now": {"$gt": 1514764800000}}`,
 		WantParseError:      false,
 		WantTranslatorError: false,
@@ -133,7 +122,7 @@ var mongodbTests = []MongodbTest{
 	},
 	{
 		Name:                `Invalid RQL query (Unmanaged RQL operator)`,
-		RQL:                 `foo=missing_operator=42`,
+		RQL:                 `missing_operator(foo,42)`,
 		Expected:            ``,
 		WantParseError:      false,
 		WantTranslatorError: true,

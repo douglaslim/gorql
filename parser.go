@@ -517,29 +517,6 @@ func getBlocNode(tb []TokenString) (*RqlNode, error) {
 				n.Args = append(n.Args, v)
 			}
 		}
-	} else if isDoubleEqualBloc(tb) {
-		n.Op = tb[2].s
-		n.Args = []interface{}{tb[0].s}
-		tbLen := len(tb)
-		if tbLen == 4 {
-			n.Args = append(n.Args, ``)
-		} else if isParenthesisBloc(tb[4:]) && findClosingIndex(tb[5:]) == tbLen-6 {
-			if tbLen <= 5 {
-				return nil, ErrParenthesisMalformed
-			}
-			args, err := parseFuncArgs(tb[5 : tbLen-1])
-			if err != nil {
-				return nil, err
-			}
-			n.Args = append(n.Args, args...)
-		} else {
-			arg := ``
-			for _, a := range tb[4:] {
-				arg = arg + a.s
-			}
-			n.Args = append(n.Args, arg)
-		}
-
 	} else {
 		return nil, fmt.Errorf("%s : %s", ErrUnregonizedBloc, TokenBloc(tb).String())
 	}
@@ -575,6 +552,12 @@ func parseFuncArgs(tb []TokenString) (args []interface{}, err error) {
 		subTs := tb[lastIndex:]
 		if len(subTs) > 0 && subTs[len(subTs)-1].t == ClosingSquareBracket {
 			subTs = subTs[:1]
+		}
+		if len(subTs) == 0 {
+			subTs = append(subTs, TokenString{
+				t: Ident,
+				s: "",
+			})
 		}
 		argTokens = append(argTokens, subTs)
 	}
