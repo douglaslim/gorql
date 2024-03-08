@@ -527,13 +527,13 @@ func parseFuncArgs(tb []TokenString) (args []interface{}, err error) {
 		argTokens = append(argTokens, tb)
 	} else {
 		lastIndex := 0
-		for _, i := range commaIdxs {
-			subTs := tb[lastIndex:i]
-			if len(subTs) > 0 && subTs[0].t == OpeningSquareBracket {
+		for i, commaIdx := range commaIdxs {
+			subTs := tb[lastIndex:commaIdx]
+			if i == 1 && len(subTs) > 0 && subTs[0].t == OpeningSquareBracket {
 				subTs = subTs[1:]
 			}
 			argTokens = append(argTokens, subTs)
-			lastIndex = i + 1
+			lastIndex = commaIdx + 1
 		}
 		subTs := tb[lastIndex:]
 		if len(subTs) > 0 && subTs[len(subTs)-1].t == ClosingSquareBracket {
