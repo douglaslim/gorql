@@ -28,6 +28,8 @@ const (
 	QuestionMark       // ?
 	AtSymbol           // @
 	Pipe               // |
+	OpeningSquareBracket
+	ClosingSquareBracket
 
 	// Keywords
 	And
@@ -41,7 +43,7 @@ const (
 )
 
 var (
-	ReservedRunes = []rune{' ', '&', '(', ')', ',', '=', '/', ';', '?', '@', '|'}
+	ReservedRunes = []rune{' ', '&', '(', ')', ',', '=', '/', ';', '?', '@', '|', '[', ']'}
 	eof           = rune(0)
 )
 
@@ -161,6 +163,10 @@ func (s *Scanner) scanReservedRune() (tok Token, lit string) {
 				return AtSymbol, lit
 			case '|':
 				return Pipe, lit
+			case '[':
+				return OpeningSquareBracket, lit
+			case ']':
+				return ClosingSquareBracket, lit
 			case eof:
 				return Eof, lit
 			default:

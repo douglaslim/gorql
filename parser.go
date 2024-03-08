@@ -432,7 +432,7 @@ func splitByBasisOp(tb []TokenString) (op string, tbs [][]TokenString) {
 	lastIndex := 0
 
 	basisTokenGroups := [][]Token{
-		{Ampersand, Comma},
+		{Ampersand},
 		{Pipe, SemiColon},
 	}
 	for _, bt := range basisTokenGroups {
@@ -471,7 +471,7 @@ func isTokenInSlice(tokens []Token, tok Token) bool {
 
 func getTokenOp(t Token) string {
 	switch t {
-	case Ampersand, Comma:
+	case Ampersand:
 		return "AND"
 	case Pipe, SemiColon:
 		return "OR"
@@ -505,11 +505,18 @@ func getBlocNode(tb []TokenString) (*RqlNode, error) {
 		}
 	} else if isSimpleEqualBloc(tb) {
 		n.Op = "eq"
-		value := ""
+		var values []string
 		if len(tb) > 2 {
-			value = tb[2].s
+			for _, v := range tb[2:] {
+				values = append(values, v.s)
+			}
 		}
-		n.Args = []interface{}{tb[0].s, value}
+		n.Args = []interface{}{tb[0].s}
+		for i, v := range values {
+			if i%2 == 0 {
+				n.Args = append(n.Args, v)
+			}
+		}
 	} else if isDoubleEqualBloc(tb) {
 		n.Op = tb[2].s
 		n.Args = []interface{}{tb[0].s}
@@ -551,17 +558,25 @@ func isFuncStyleBloc(tb []TokenString) bool {
 func parseFuncArgs(tb []TokenString) (args []interface{}, err error) {
 	var argTokens [][]TokenString
 
-	indexes := findAllTokenIndexes(tb, Comma)
+	commaIdxs := findAllTokenIndexes(tb, Comma)
 
-	if len(indexes) == 0 {
+	if len(commaIdxs) == 0 {
 		argTokens = append(argTokens, tb)
 	} else {
 		lastIndex := 0
-		for _, i := range indexes {
-			argTokens = append(argTokens, tb[lastIndex:i])
+		for _, i := range commaIdxs {
+			subTs := tb[lastIndex:i]
+			if len(subTs) > 0 && subTs[0].t == OpeningSquareBracket {
+				subTs = subTs[1:]
+			}
+			argTokens = append(argTokens, subTs)
 			lastIndex = i + 1
 		}
-		argTokens = append(argTokens, tb[lastIndex:])
+		subTs := tb[lastIndex:]
+		if len(subTs) > 0 && subTs[len(subTs)-1].t == ClosingSquareBracket {
+			subTs = subTs[:1]
+		}
+		argTokens = append(argTokens, subTs)
 	}
 
 	for _, ts := range argTokens {
