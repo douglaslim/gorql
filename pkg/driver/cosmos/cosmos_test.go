@@ -134,106 +134,106 @@ var tests = []Test{
 		WantParseError:      false,
 		WantTranslatorError: false,
 	},
-	//{
-	//	Name: `Mixed style translation`,
-	//	RQL:  `((eq(foo,42)&gt(price,10))|price=ge=500)&disabled=eq=false`,
-	//	Model: new(struct {
-	//		Foo      string  `rql:"filter"`
-	//		Price    float64 `rql:"filter"`
-	//		Disabled bool    `rql:"filter"`
-	//	}),
-	//	ExpectedSQL: `WHERE ((((c.foo = @p1) AND (c.price > @p2)) OR (c.price >= @p3)) AND (c.disabled = @p4))`,
-	//	ExpectedArgs: []interface{}{
-	//		Param{
-	//			Name:  "@p1",
-	//			Value: "42",
-	//		},
-	//		Param{
-	//			Name:  "@p2",
-	//			Value: float64(10),
-	//		},
-	//		Param{
-	//			Name:  "@p3",
-	//			Value: float64(500),
-	//		},
-	//		Param{
-	//			Name:  "@p4",
-	//			Value: false,
-	//		},
-	//	},
-	//	WantParseError:      false,
-	//	WantTranslatorError: false,
-	//},
-	//{
-	//	Name: `Try a simple SQL injection`,
-	//	RQL:  `foo=like=toto%27%3BSELECT%20column%20IN%20table`,
-	//	Model: new(struct {
-	//		Foo string `rql:"filter"`
-	//	}),
-	//	ExpectedSQL: `WHERE (c.foo LIKE @p1)`,
-	//	ExpectedArgs: []interface{}{
-	//		Param{
-	//			Name:  "@p1",
-	//			Value: "toto';SELECT column IN table",
-	//		},
-	//	},
-	//	WantParseError:      false,
-	//	WantTranslatorError: false,
-	//},
-	//{
-	//	Name:                `Empty RQL`,
-	//	RQL:                 ``,
-	//	Model:               new(struct{}),
-	//	ExpectedSQL:         ``,
-	//	WantParseError:      false,
-	//	WantTranslatorError: false,
-	//},
-	//{
-	//	Name: `Invalid RQL query (Unmanaged RQL operator)`,
-	//	RQL:  `foo=missing_operator=42`,
-	//	Model: new(struct {
-	//		Foo string `rql:"filter"`
-	//	}),
-	//	ExpectedSQL:         ``,
-	//	WantParseError:      false,
-	//	WantTranslatorError: true,
-	//},
-	//{
-	//	Name:                `Invalid RQL query (Unescaped character)`,
-	//	RQL:                 `like(foo,hello world)`,
-	//	Model:               new(struct{}),
-	//	ExpectedSQL:         ``,
-	//	WantParseError:      true,
-	//	WantTranslatorError: false,
-	//},
-	//{
-	//	Name:                `Invalid RQL query (Missing comma)`,
-	//	RQL:                 `and(not(test),eq(foo,toto)gt(price,10))`,
-	//	Model:               new(struct{}),
-	//	ExpectedSQL:         ``,
-	//	WantParseError:      true,
-	//	WantTranslatorError: false,
-	//},
-	//{
-	//	Name: `Invalid RQL query (Invalid field name)`,
-	//	RQL:  `eq(foo%20tot,42)`,
-	//	Model: new(struct {
-	//		Foo string `rql:"filter,column=foo tot"`
-	//	}),
-	//	ExpectedSQL:         ``,
-	//	WantParseError:      false,
-	//	WantTranslatorError: true,
-	//},
-	//{
-	//	Name: `Invalid RQL query (Invalid field name 2)`,
-	//	RQL:  `eq(foo*,toto)`,
-	//	Model: new(struct {
-	//		Foo string `rql:"filter,column=foo*"`
-	//	}),
-	//	ExpectedSQL:         ``,
-	//	WantParseError:      false,
-	//	WantTranslatorError: true,
-	//},
+	{
+		Name: `Mixed style translation`,
+		RQL:  `((eq(foo,42)&gt(price,10))|ge(price,500))&eq(disabled,false)`,
+		Model: new(struct {
+			Foo      string  `rql:"filter"`
+			Price    float64 `rql:"filter"`
+			Disabled bool    `rql:"filter"`
+		}),
+		ExpectedSQL: `WHERE ((((c.foo = @p1) AND (c.price > @p2)) OR (c.price >= @p3)) AND (c.disabled = @p4))`,
+		ExpectedArgs: []interface{}{
+			Param{
+				Name:  "@p1",
+				Value: "42",
+			},
+			Param{
+				Name:  "@p2",
+				Value: float64(10),
+			},
+			Param{
+				Name:  "@p3",
+				Value: float64(500),
+			},
+			Param{
+				Name:  "@p4",
+				Value: false,
+			},
+		},
+		WantParseError:      false,
+		WantTranslatorError: false,
+	},
+	{
+		Name: `Try a simple SQL injection`,
+		RQL:  `like(foo,toto%27%3BSELECT%20column%20IN%20table)`,
+		Model: new(struct {
+			Foo string `rql:"filter"`
+		}),
+		ExpectedSQL: `WHERE (c.foo LIKE @p1)`,
+		ExpectedArgs: []interface{}{
+			Param{
+				Name:  "@p1",
+				Value: "toto';SELECT column IN table",
+			},
+		},
+		WantParseError:      false,
+		WantTranslatorError: false,
+	},
+	{
+		Name:                `Empty RQL`,
+		RQL:                 ``,
+		Model:               new(struct{}),
+		ExpectedSQL:         ``,
+		WantParseError:      false,
+		WantTranslatorError: false,
+	},
+	{
+		Name: `Invalid RQL query (Unmanaged RQL operator)`,
+		RQL:  `missing_operator(foo,42)`,
+		Model: new(struct {
+			Foo string `rql:"filter"`
+		}),
+		ExpectedSQL:         ``,
+		WantParseError:      false,
+		WantTranslatorError: true,
+	},
+	{
+		Name:                `Invalid RQL query (Unescaped character)`,
+		RQL:                 `like(foo,hello world)`,
+		Model:               new(struct{}),
+		ExpectedSQL:         ``,
+		WantParseError:      true,
+		WantTranslatorError: false,
+	},
+	{
+		Name:                `Invalid RQL query (Missing comma)`,
+		RQL:                 `and(not(test),eq(foo,toto)gt(price,10))`,
+		Model:               new(struct{}),
+		ExpectedSQL:         ``,
+		WantParseError:      true,
+		WantTranslatorError: false,
+	},
+	{
+		Name: `Invalid RQL query (Invalid field name)`,
+		RQL:  `eq(foo%20tot,42)`,
+		Model: new(struct {
+			Foo string `rql:"filter,column=foo tot"`
+		}),
+		ExpectedSQL:         ``,
+		WantParseError:      false,
+		WantTranslatorError: true,
+	},
+	{
+		Name: `Invalid RQL query (Invalid field name 2)`,
+		RQL:  `eq(foo*,toto)`,
+		Model: new(struct {
+			Foo string `rql:"filter,column=foo*"`
+		}),
+		ExpectedSQL:         ``,
+		WantParseError:      false,
+		WantTranslatorError: true,
+	},
 }
 
 func TestParser(t *testing.T) {
