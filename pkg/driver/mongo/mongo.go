@@ -212,20 +212,28 @@ func (mt *Translator) GetSliceTranslatorFunc(op string, alterValueFunc AlterValu
 	return func(n *gorql.RqlNode) (s string, err error) {
 		var values []string
 		var field string
-		for i, a := range n.Args {
-			if i == 0 {
-				if gorql.IsValidField(a.(string)) {
-					field = quote(a.(string))
-				} else {
-					return "", fmt.Errorf("first argument must be a valid field name (arg: %s)", a)
-				}
+		if len(n.Args) > 0 {
+			a := n.Args[0]
+			if gorql.IsValidField(a.(string)) {
+				field = quote(a.(string))
 			} else {
-				convertedValue, err := alterValueFunc(a)
-				if err != nil {
-					return "", err
-				}
-				values = append(values, fmt.Sprintf("%v", convertedValue))
+				return "", fmt.Errorf("first argument must be a valid field name (arg: %s)", a)
 			}
+		}
+		subArgs := n.Args[1:]
+		if len(subArgs) > 1 {
+			return "", fmt.Errorf("expect enclosed arrays with square brackets argument")
+		}
+		groupNode, ok := subArgs[0].(*gorql.RqlNode)
+		if !ok {
+			return "", fmt.Errorf("expected group node but got %v", subArgs[0])
+		}
+		for _, a := range groupNode.Args {
+			convertedValue, err := alterValueFunc(a)
+			if err != nil {
+				return "", err
+			}
+			values = append(values, fmt.Sprintf("%v", convertedValue))
 		}
 		s += fmt.Sprintf(`%s: {"$%s": [%v]}`, field, op, strings.Join(values, ", "))
 		return fmt.Sprintf(`{%s}`, s), nil

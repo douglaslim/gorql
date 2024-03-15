@@ -50,9 +50,12 @@ func (r *RqlRootNode) Sort() []Sort {
 }
 
 var (
-	ErrBlocValue            = errors.New("bloc is a value")
-	ErrParenthesisMalformed = errors.New("parenthesis bloc is malformed")
-	ErrUnregonizedBloc      = errors.New("unrecognized bloc")
+	ErrBlocValue                 = errors.New("bloc is a value")
+	ErrBlocBracket               = errors.New("bloc is a square bracket")
+	ErrParenthesisMalformed      = errors.New("parenthesis bloc is malformed")
+	ErrUnregonizedBloc           = errors.New("unrecognized bloc")
+	ErrSecondArgPairSqrBr        = errors.New("second argument needs to be a single pair of square bracket array")
+	ErrInvalidPlacementSqrBrBloc = errors.New("invalid formation of square brackets bloc")
 )
 
 type TokenBloc []TokenString
@@ -364,7 +367,7 @@ func parse(ts []TokenString) (node *RqlNode, err error) {
 	for _, c := range childTs {
 		childNode, err = parse(c)
 		if err != nil {
-			if errors.Is(err, ErrBlocValue) {
+			if isSingleBlocError(err) {
 				node.Args = append(node.Args, c[0].s)
 			} else {
 				return nil, err
@@ -469,6 +472,13 @@ func getBlocNode(tb []TokenString) (*RqlNode, error) {
 
 	if isValue(tb) {
 		return nil, ErrBlocValue
+	} else if isOpSqrBrStyleBloc(tb) {
+		var err error
+		n.Op = "group"
+		n.Args, err = parseArrArgs(tb)
+		if err != nil {
+			return nil, err
+		}
 	} else if isFuncStyleBloc(tb) {
 		var err error
 		n.Op = tb[0].s
@@ -518,40 +528,46 @@ func isFuncStyleBloc(tb []TokenString) bool {
 	return (tb[0].t == Ident) && (tb[1].t == OpeningParenthesis)
 }
 
+func isSqrBrStyleBloc(tb []TokenString) bool {
+	return tb[0].t == Ident && (tb[1].t == Comma) && (tb[2].t == OpeningSquareBracket)
+}
+
+func isOpSqrBrStyleBloc(tb []TokenString) bool {
+	return tb[0].t == OpeningSquareBracket
+}
+
 func parseFuncArgs(tb []TokenString) (args []interface{}, err error) {
 	var argTokens [][]TokenString
 
-	commaIdxs := findAllTokenIndexes(tb, Comma)
-
-	if len(commaIdxs) == 0 {
-		argTokens = append(argTokens, tb)
+	if len(tb) > 3 && isSqrBrStyleBloc(tb) {
+		argTokens = append(argTokens, []TokenString{tb[0]})
+		argTokens = append(argTokens, tb[2:])
 	} else {
-		lastIndex := 0
-		for i, commaIdx := range commaIdxs {
-			subTs := tb[lastIndex:commaIdx]
-			if i == 1 && len(subTs) > 0 && subTs[0].t == OpeningSquareBracket {
-				subTs = subTs[1:]
+		commaIdxs := findAllTokenIndexes(tb, Comma)
+		if len(commaIdxs) == 0 {
+			argTokens = append(argTokens, tb)
+		} else {
+			lastIndex := 0
+			for _, commaIdx := range commaIdxs {
+				subTs := tb[lastIndex:commaIdx]
+				argTokens = append(argTokens, subTs)
+				lastIndex = commaIdx + 1
+			}
+			subTs := tb[lastIndex:]
+			if len(subTs) == 0 {
+				subTs = append(subTs, TokenString{
+					t: Ident,
+					s: "",
+				})
 			}
 			argTokens = append(argTokens, subTs)
-			lastIndex = commaIdx + 1
 		}
-		subTs := tb[lastIndex:]
-		if len(subTs) > 0 && subTs[len(subTs)-1].t == ClosingSquareBracket {
-			subTs = subTs[:1]
-		}
-		if len(subTs) == 0 {
-			subTs = append(subTs, TokenString{
-				t: Ident,
-				s: "",
-			})
-		}
-		argTokens = append(argTokens, subTs)
 	}
 
 	for _, ts := range argTokens {
 		n, err := parse(ts)
 		if err != nil {
-			if errors.Is(err, ErrBlocValue) {
+			if isSingleBlocError(err) {
 				args = append(args, ts[0].s)
 			} else {
 				return args, err
@@ -562,6 +578,10 @@ func parseFuncArgs(tb []TokenString) (args []interface{}, err error) {
 	}
 
 	return
+}
+
+func isSingleBlocError(err error) bool {
+	return errors.Is(err, ErrBlocValue) || errors.Is(err, ErrBlocBracket)
 }
 
 func findAllTokenIndexes(tb []TokenString, token Token) (indexes []int) {
@@ -591,4 +611,63 @@ func isSimpleEqualBloc(tb []TokenString) bool {
 	}
 
 	return isSimple
+}
+
+func parseArrArgs(tb []TokenString) (args []interface{}, err error) {
+	if len(tb) < 1 {
+		return nil, fmt.Errorf("empty token strings for array arguments")
+	}
+	stack := make([]TokenString, 0)
+	count := 0
+
+	var subTs []TokenString
+	for i, b := range tb {
+		if i == 0 && b.t != OpeningSquareBracket {
+			return nil, ErrSecondArgPairSqrBr
+		}
+
+		if b.t == OpeningSquareBracket {
+			stack = append(stack, b)
+		} else if b.t == ClosingSquareBracket {
+			if len(stack) > 0 && stack[len(stack)-1].t == OpeningSquareBracket {
+				stack = stack[:len(stack)-1]
+				count += 1
+			} else {
+				stack = append(stack, b)
+			}
+		} else {
+			subTs = append(subTs, b)
+		}
+	}
+	if count != 1 {
+		return nil, fmt.Errorf("array values need to be enclosed in square brackets")
+	}
+	if len(stack) != 0 {
+		return nil, ErrInvalidPlacementSqrBrBloc
+	}
+
+	commaIdxs := findAllTokenIndexes(subTs, Comma)
+	if len(commaIdxs) == 0 {
+		args = append(args, subTs)
+	} else {
+		lastIndex := 0
+		for _, commaIdx := range commaIdxs {
+			subCommaTs := subTs[lastIndex:commaIdx]
+			for _, sct := range subCommaTs {
+				args = append(args, sct.s)
+			}
+			lastIndex = commaIdx + 1
+		}
+		subCommaTs := subTs[lastIndex:]
+		if len(subCommaTs) == 0 {
+			subCommaTs = append(subCommaTs, TokenString{
+				t: Ident,
+				s: "",
+			})
+		}
+		for _, sct := range subCommaTs {
+			args = append(args, sct.s)
+		}
+	}
+	return
 }

@@ -115,6 +115,9 @@ func (p *Parser) GetFieldValidationFunc() ValidationFunc {
 					n.Args[i] = newVal
 				}
 			case *RqlNode:
+				if v.Op == "group" {
+					continue
+				}
 				err = p.validateFields(v)
 				if err != nil {
 					return err

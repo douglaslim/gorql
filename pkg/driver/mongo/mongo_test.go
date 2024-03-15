@@ -82,7 +82,7 @@ var mongodbTests = []MongodbTest{
 	},
 	{
 		Name:                `Basic translation with IN Operator`,
-		RQL:                 `in(foo,hello,this%20is%20low,wow)`,
+		RQL:                 `in(foo,[hello,this%20is%20low,wow])`,
 		Expected:            `{"foo": {"$in": ["hello", "this is low", "wow"]}}`,
 		WantParseError:      false,
 		WantTranslatorError: false,

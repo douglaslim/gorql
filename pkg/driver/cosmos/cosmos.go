@@ -287,21 +287,29 @@ func (ct *Translator) GetSliceTranslatorFunc(op string, alterValueFunc AlterValu
 		var values []string
 		var field string
 		var placeholder string
-		for i, a := range n.Args {
-			if i == 0 {
-				if gorql.IsValidField(a.(string)) {
-					field = fmt.Sprintf("c.%s", a.(string))
-				} else {
-					return "", fmt.Errorf("first argument must be a valid field name (arg: %s)", a)
-				}
+		if len(n.Args) > 0 {
+			a := n.Args[0]
+			if gorql.IsValidField(a.(string)) {
+				field = fmt.Sprintf("c.%s", a.(string))
 			} else {
-				placeholder = fmt.Sprintf("@p%s", strconv.Itoa(len(ct.args)+1))
-				convertedValue, err := alterValueFunc(a)
-				if err != nil {
-					return "", err
-				}
-				values = append(values, fmt.Sprintf("%v", convertedValue))
+				return "", fmt.Errorf("first argument must be a valid field name (arg: %s)", a)
 			}
+		}
+		subArgs := n.Args[1:]
+		if len(subArgs) > 1 {
+			return "", fmt.Errorf("expect enclosed arrays with square brackets argument")
+		}
+		groupNode, ok := subArgs[0].(*gorql.RqlNode)
+		if !ok {
+			return "", fmt.Errorf("expected group node but got %v", subArgs[0])
+		}
+		for _, a := range groupNode.Args {
+			placeholder = fmt.Sprintf("@p%s", strconv.Itoa(len(ct.args)+1))
+			convertedValue, err := alterValueFunc(a)
+			if err != nil {
+				return "", err
+			}
+			values = append(values, fmt.Sprintf("%v", convertedValue))
 		}
 		ct.args = append(ct.args, Param{
 			Name:  placeholder,

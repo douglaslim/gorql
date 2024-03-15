@@ -136,7 +136,7 @@ var tests = []Test{
 	},
 	{
 		Name: `Basic translation for IN operator`,
-		RQL:  `in(foo,bar,john,doe)`,
+		RQL:  `in(foo,[bar,john,doe])`,
 		Model: new(struct {
 			Foo string `rql:"filter"`
 		}),
