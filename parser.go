@@ -54,7 +54,6 @@ var (
 	ErrBlocBracket               = errors.New("bloc is a square bracket")
 	ErrParenthesisMalformed      = errors.New("parenthesis bloc is malformed")
 	ErrUnregonizedBloc           = errors.New("unrecognized bloc")
-	ErrSecondArgPairSqrBr        = errors.New("second argument needs to be a single pair of square bracket array")
 	ErrInvalidPlacementSqrBrBloc = errors.New("invalid formation of square brackets bloc")
 )
 
@@ -472,7 +471,7 @@ func getBlocNode(tb []TokenString) (*RqlNode, error) {
 
 	if isValue(tb) {
 		return nil, ErrBlocValue
-	} else if isOpSqrBrStyleBloc(tb) {
+	} else if isSqrBrStyleBloc(tb) {
 		var err error
 		n.Op = "group"
 		n.Args, err = parseArrArgs(tb)
@@ -529,11 +528,7 @@ func isFuncStyleBloc(tb []TokenString) bool {
 }
 
 func isSqrBrStyleBloc(tb []TokenString) bool {
-	return tb[0].t == Ident && (tb[1].t == Comma) && (tb[2].t == OpeningSquareBracket)
-}
-
-func isOpSqrBrStyleBloc(tb []TokenString) bool {
-	return tb[0].t == OpeningSquareBracket
+	return len(tb) >= 3 && tb[0].t == Ident && (tb[1].t == Comma) && (tb[2].t == OpeningSquareBracket)
 }
 
 func parseFuncArgs(tb []TokenString) (args []interface{}, err error) {
@@ -541,7 +536,7 @@ func parseFuncArgs(tb []TokenString) (args []interface{}, err error) {
 
 	if len(tb) > 3 && isSqrBrStyleBloc(tb) {
 		argTokens = append(argTokens, []TokenString{tb[0]})
-		argTokens = append(argTokens, tb[2:])
+		argTokens = append(argTokens, tb)
 	} else {
 		commaIdxs := findAllTokenIndexes(tb, Comma)
 		if len(commaIdxs) == 0 {
@@ -620,10 +615,14 @@ func parseArrArgs(tb []TokenString) (args []interface{}, err error) {
 	stack := make([]TokenString, 0)
 	count := 0
 
-	var subTs []TokenString
-	for i, b := range tb {
+	subTs := tb[:2]
+	arraySubTs := tb[2:]
+	for i, b := range arraySubTs {
 		if i == 0 && b.t != OpeningSquareBracket {
-			return nil, ErrSecondArgPairSqrBr
+			return nil, fmt.Errorf("second argument needs to be a single pair of square bracket array")
+		}
+		if i == len(arraySubTs)-1 && b.t != ClosingSquareBracket {
+			return nil, fmt.Errorf("last value is not enclosed with closing square bracket")
 		}
 
 		if b.t == OpeningSquareBracket {
@@ -640,7 +639,7 @@ func parseArrArgs(tb []TokenString) (args []interface{}, err error) {
 		}
 	}
 	if count != 1 {
-		return nil, fmt.Errorf("array values need to be enclosed in square brackets")
+		return nil, fmt.Errorf("array values need to be enclosed in a single pair square brackets")
 	}
 	if len(stack) != 0 {
 		return nil, ErrInvalidPlacementSqrBrBloc

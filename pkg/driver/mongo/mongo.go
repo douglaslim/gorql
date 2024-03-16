@@ -228,7 +228,10 @@ func (mt *Translator) GetSliceTranslatorFunc(op string, alterValueFunc AlterValu
 		if !ok {
 			return "", fmt.Errorf("expected group node but got %v", subArgs[0])
 		}
-		for _, a := range groupNode.Args {
+		if len(groupNode.Args) < 2 {
+			return "", fmt.Errorf("array of values not found")
+		}
+		for _, a := range groupNode.Args[1:] {
 			convertedValue, err := alterValueFunc(a)
 			if err != nil {
 				return "", err
