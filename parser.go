@@ -334,7 +334,7 @@ func (p *Parser) Parse(r io.Reader) (root *RqlRootNode, err error) {
 
 // ParseURL constructs an AST from url.Values for code transformation
 func (p *Parser) ParseURL(q url.Values) (root *RqlRootNode, err error) {
-	rqlQuery, _ := url.QueryUnescape(encodeURLValues(q))
+	rqlQuery, _ := url.PathUnescape(encodeURLValues(q))
 	root, err = p.Parse(strings.NewReader(rqlQuery))
 	if err != nil {
 		return nil, fmt.Errorf("url parse error: %s", err)
