@@ -43,7 +43,7 @@ const (
 )
 
 var (
-	ReservedRunes = []rune{' ', '&', '(', ')', ',', '=', '/', ';', '?', '@', '|', '[', ']'}
+	ReservedRunes = []rune{' ', '&', '(', ')', ',', '=', '/', ';', '?', '|', '[', ']'}
 	eof           = rune(0)
 )
 
@@ -159,8 +159,6 @@ func (s *Scanner) scanReservedRune() (tok Token, lit string) {
 				return SemiColon, lit
 			case '?':
 				return QuestionMark, lit
-			case '@':
-				return AtSymbol, lit
 			case '|':
 				return Pipe, lit
 			case '[':
@@ -186,7 +184,7 @@ func isIdent(ch rune) bool {
 func isSpecialChar(ch rune) bool {
 	return ch == '*' || ch == '_' || ch == '%' ||
 		ch == '+' || ch == '-' || ch == '.' ||
-		ch == ':' || ch == '$'
+		ch == ':' || ch == '$' || ch == '@'
 }
 
 // IsLetter returns true if the rune is a letter.
