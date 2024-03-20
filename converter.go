@@ -37,6 +37,9 @@ func convertTime(layout string) func(interface{}) (interface{}, error) {
 
 // convert string to bool.
 func convertBool(v interface{}) (interface{}, error) {
+	if v.(string) == "" {
+		return v, nil
+	}
 	s, err := strconv.ParseBool(v.(string))
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert %s to bool: %s", v.(string), err)
