@@ -144,7 +144,7 @@ var tests = []Test{
 		ExpectedArgs: []interface{}{
 			Param{
 				Name:  "@p1",
-				Value: []string{"bar", "john", "doe"},
+				Value: []interface{}{"bar", "john", "doe"},
 			},
 		},
 		WantParseError:      false,

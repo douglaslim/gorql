@@ -284,7 +284,7 @@ func (ct *Translator) GetOpFirstTranslatorFunc(op string, valueAlterFunc AlterVa
 
 func (ct *Translator) GetSliceTranslatorFunc(op string, alterValueFunc AlterValueFunc) driver.TranslatorOpFunc {
 	return func(n *gorql.RqlNode) (s string, err error) {
-		var values []string
+		var values []interface{}
 		var field string
 		var placeholder string
 		if len(n.Args) > 0 {
@@ -312,7 +312,7 @@ func (ct *Translator) GetSliceTranslatorFunc(op string, alterValueFunc AlterValu
 			if err != nil {
 				return "", err
 			}
-			values = append(values, fmt.Sprintf("%v", convertedValue))
+			values = append(values, convertedValue)
 		}
 		ct.args = append(ct.args, Param{
 			Name:  placeholder,
