@@ -148,10 +148,13 @@ func (p *Parser) validateSpecialOps(r *RqlRootNode) error {
 }
 
 func (p *Parser) validateSort(sortItems []Sort) error {
-	for _, s := range sortItems {
+	for i, s := range sortItems {
 		f, ok := p.fields[s.By]
 		if !ok || !f.Sortable {
 			return fmt.Errorf("field %s is not sortable", s.By)
+		}
+		if f.ReplaceWith != "" {
+			sortItems[i].By = f.ReplaceWith
 		}
 	}
 	return nil
