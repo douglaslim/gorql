@@ -2,10 +2,9 @@ package gorql
 
 import (
 	"errors"
+	"github.com/iancoleman/strcase"
 	"log"
 	"reflect"
-	"strings"
-	"unicode"
 )
 
 const (
@@ -99,27 +98,14 @@ func (c *Config) defaults() error {
 	return nil
 }
 
-// Column is the default function that converts field name into a database column.
-// It used to convert the struct fields into their database names. For example:
+// Column is the default function that transform field name into column name.
+// It used to convert the struct fields into lower camelcase. For example:
 //
 //	Username => username
-//	FullName => full_name
-//	HTTPCode => http_code
+//	FullName => fullName
+//	HTTPCode => httpcode
 func Column(s string) string {
-	var b strings.Builder
-	for i := 0; i < len(s); i++ {
-		r := rune(s[i])
-		// put '.' if it is not a start or end of a word, current letter is an uppercase letter,
-		// and previous letter is a lowercase letter (cases like: "UserName"), or next letter is
-		// also a lowercase letter and previous letter is not "_".
-		if i > 0 && i < len(s)-1 && unicode.IsUpper(r) &&
-			(unicode.IsLower(rune(s[i-1])) ||
-				unicode.IsLower(rune(s[i+1])) && unicode.IsLetter(rune(s[i-1]))) {
-			b.WriteString("_")
-		}
-		b.WriteRune(unicode.ToLower(r))
-	}
-	return b.String()
+	return strcase.ToLowerCamel(s)
 }
 
 func defaultString(s *string, v string) {

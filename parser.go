@@ -160,9 +160,9 @@ type Parser struct {
 
 // field is a configuration of a struct field.
 type field struct {
-	// Name of the column.
+	// Name of the field.
 	Name string
-	// Has a "replacewith" option in the tag. If present, the name of the column will be converted to this name
+	// Has a "replacewith" option in the tag. If present, this name will be used as the db column name
 	ReplaceWith string
 	// Has a "sort" option in the tag.
 	Sortable bool
