@@ -81,11 +81,15 @@ func (ct *Translator) Sort() (sql string) {
 	return
 }
 
-func (ct *Translator) Selects() (fields string) {
+func (ct *Translator) Selects() (selects string) {
 	if ct.rootNode == nil {
 		return
 	}
-	return strings.Join(ct.rootNode.Selects(), ",")
+	var aliasSelects []string
+	for _, s := range ct.rootNode.Selects() {
+		aliasSelects = append(aliasSelects, fmt.Sprintf("c.%s", s))
+	}
+	return strings.Join(aliasSelects, ",")
 }
 
 func (ct *Translator) Sql() (sql string, err error) {
