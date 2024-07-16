@@ -30,11 +30,11 @@ type Sort struct {
 }
 
 type RqlRootNode struct {
-	Node   *RqlNode
-	limit  string
-	offset string
-	fields []string
-	sorts  []Sort
+	Node    *RqlNode
+	limit   string
+	offset  string
+	selects []string
+	sorts   []Sort
 }
 
 func (r *RqlRootNode) Limit() string {
@@ -47,6 +47,10 @@ func (r *RqlRootNode) Offset() string {
 
 func (r *RqlRootNode) Sort() []Sort {
 	return r.sorts
+}
+
+func (r *RqlRootNode) Selects() []string {
+	return r.selects
 }
 
 var (
@@ -145,7 +149,7 @@ func parseFields(n *RqlNode, root *RqlRootNode) (isFieldsOp bool) {
 	if n.Op == SelectOp {
 		for _, s := range n.Args {
 			property := s.(string)
-			root.fields = append(root.fields, property)
+			root.selects = append(root.selects, property)
 		}
 		isFieldsOp = true
 	}

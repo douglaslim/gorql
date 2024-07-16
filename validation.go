@@ -144,6 +144,13 @@ func (p *Parser) validateSpecialOps(r *RqlRootNode) error {
 			return err
 		}
 	}
+	if p.c != nil && len(r.Selects()) > 0 {
+		fieldNames, err := p.validateSelects(r.Selects())
+		if err != nil {
+			return err
+		}
+		r.selects = fieldNames
+	}
 	return nil
 }
 
@@ -183,6 +190,21 @@ func (p *Parser) validateLimit(l string) error {
 		return fmt.Errorf("specified limit is more than the max limit %d allowed", p.c.DefaultLimit)
 	}
 	return nil
+}
+
+func (p *Parser) validateSelects(selects []string) (fieldNames []string, err error) {
+	for _, s := range selects {
+		f, ok := p.fields[s]
+		if !ok {
+			return nil, fmt.Errorf("field %s is projectable", s)
+		}
+		fieldName := f.Name
+		if f.ReplaceWith != "" {
+			fieldName = f.ReplaceWith
+		}
+		fieldNames = append(fieldNames, fieldName)
+	}
+	return
 }
 
 func IsValidField(s string) bool {

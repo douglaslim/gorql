@@ -133,6 +133,17 @@ func (mt *Translator) Offset() (offset string) {
 	return
 }
 
+func (mt *Translator) Selects() (fields string) {
+	if mt.rootNode == nil {
+		return
+	}
+	var selects []string
+	for _, s := range mt.rootNode.Selects() {
+		selects = append(selects, fmt.Sprintf("%s: 1", s))
+	}
+	return fmt.Sprintf("{%s}", strings.Join(selects, ","))
+}
+
 func (mt *Translator) where(n *gorql.RqlNode) (string, error) {
 	if n == nil {
 		return ``, nil

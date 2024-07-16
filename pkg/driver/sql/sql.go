@@ -78,6 +78,13 @@ func (st *Translator) Sort() (sql string) {
 	return
 }
 
+func (st *Translator) Selects() (fields string) {
+	if st.rootNode == nil {
+		return
+	}
+	return strings.Join(st.rootNode.Selects(), ",")
+}
+
 func (st *Translator) Sql() (sql string, err error) {
 	var where string
 
