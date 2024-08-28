@@ -187,7 +187,7 @@ func (p *Parser) validateLimit(l string) error {
 		return fmt.Errorf("specified limit is less than zero")
 	}
 	if p.c != nil && limit > p.c.LimitMaxValue {
-		return fmt.Errorf("specified limit is more than the max limit %d allowed", p.c.DefaultLimit)
+		return fmt.Errorf("specified limit is more than the max limit %d allowed", p.c.LimitMaxValue)
 	}
 	return nil
 }
