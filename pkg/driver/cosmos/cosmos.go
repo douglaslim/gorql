@@ -140,7 +140,7 @@ func NewCosmosTranslator(r *gorql.RqlRootNode) (st *Translator) {
 	st.SetOpFunc(driver.EqOp, st.GetEqualityTranslatorOpFunc("=", "IS"))
 
 	st.SetOpFunc(driver.LikeOp, st.GetFieldValueTranslatorFunc(driver.LikeOp, starToPercentFunc))
-	st.SetOpFunc(driver.MatchOp, st.GetFieldValueTranslatorFunc("ILIKE", starToPercentFunc))
+	st.SetOpFunc(driver.MatchOp, st.GetFunctionValueTranslatorFunc("CONTAINS", starToPercentFunc, true))
 	st.SetOpFunc(driver.GtOp, st.GetFieldValueTranslatorFunc(">", convert))
 	st.SetOpFunc(driver.LtOp, st.GetFieldValueTranslatorFunc("<", convert))
 	st.SetOpFunc(driver.GeOp, st.GetFieldValueTranslatorFunc(">=", convert))
@@ -253,6 +253,40 @@ func (ct *Translator) GetFieldValueTranslatorFunc(op string, valueAlterFunc Alte
 		}
 
 		return "(" + s + ")", nil
+	}
+}
+
+func (ct *Translator) GetFunctionValueTranslatorFunc(op string, valueAlterFunc AlterValueFunc, optionalBool bool) driver.TranslatorOpFunc {
+	return func(n *gorql.RqlNode) (s string, err error) {
+		var field string
+		var placeholder string
+		if len(n.Args) > 0 {
+			a := n.Args[0]
+			if gorql.IsValidField(a.(string)) {
+				field = fmt.Sprintf("c.%s", a.(string))
+			} else {
+				return "", fmt.Errorf("first argument must be a valid field name (arg: %s)", a)
+			}
+		}
+		subArgs := n.Args[1:]
+		if len(subArgs) > 1 {
+			return "", fmt.Errorf("expect one value argument, detected multiple arguments")
+		}
+		value, ok := subArgs[0].(string)
+		if !ok {
+			return "", fmt.Errorf("value %v is not type string", subArgs[0])
+		}
+		placeholder = fmt.Sprintf("@p%s", strconv.Itoa(len(ct.args)+1))
+		convertedValue, err := valueAlterFunc(value)
+		if err != nil {
+			return "", err
+		}
+		ct.args = append(ct.args, Param{
+			Name:  placeholder,
+			Value: convertedValue,
+		})
+		s += fmt.Sprintf(`%s, %s, %v`, field, placeholder, optionalBool)
+		return op + "(" + s + ")", nil
 	}
 }
 

@@ -135,6 +135,16 @@ var tests = []Test{
 		WantTranslatorError: false,
 	},
 	{
+		Name: `Basic translation for CONTAINS ignore case operator`,
+		RQL:  `match(foo,whoam*)`,
+		Model: new(struct {
+			Foo string `rql:"filter"`
+		}),
+		ExpectedSQL:         `WHERE CONTAINS(c.foo, @p1, true)`,
+		WantParseError:      false,
+		WantTranslatorError: false,
+	},
+	{
 		Name: `Basic translation for IN operator`,
 		RQL:  `in(foo,[bar,john,doe])`,
 		Model: new(struct {
