@@ -281,6 +281,13 @@ func (p *Parser) parseField(sf reflect.StructField) error {
 	case reflect.Float32, reflect.Float64:
 		f.ValidateFn = validateFloat
 		f.CovertFn = convertFloat
+	case reflect.Slice:
+		switch elemType := typ.Elem(); elemType.Kind() {
+		case reflect.String:
+			f.ValidateFn = validateString
+		default:
+			return fmt.Errorf("rql: field type for %q is not supported", sf.Name)
+		}
 	case reflect.Struct:
 		switch v := reflect.Zero(typ); v.Interface().(type) {
 		case sql.NullBool:
