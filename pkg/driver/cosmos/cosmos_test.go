@@ -150,11 +150,19 @@ var tests = []Test{
 		Model: new(struct {
 			Foo string `rql:"filter"`
 		}),
-		ExpectedSQL: `WHERE ARRAY_CONTAINS(@p1, c.foo, false)`,
+		ExpectedSQL: `WHERE ARRAY_CONTAINS_ALL(c.foo, @p1, @p2, @p3)`,
 		ExpectedArgs: []interface{}{
 			Param{
 				Name:  "@p1",
-				Value: []interface{}{"bar", "john", "doe"},
+				Value: "bar",
+			},
+			Param{
+				Name:  "@p2",
+				Value: "john",
+			},
+			Param{
+				Name:  "@p3",
+				Value: "doe",
 			},
 		},
 		WantParseError:      false,
