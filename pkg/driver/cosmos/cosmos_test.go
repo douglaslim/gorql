@@ -145,7 +145,7 @@ var tests = []Test{
 		WantTranslatorError: false,
 	},
 	{
-		Name: `Basic translation for STARTS_WITH ignore case operator`,
+		Name: `Basic translation for STARTSWITH ignore case operator`,
 		RQL:  `match(foo,whoam*)`,
 		Model: new(struct {
 			Foo string `rql:"filter"`
@@ -155,7 +155,7 @@ var tests = []Test{
 		WantTranslatorError: false,
 	},
 	{
-		Name: `Basic translation for ENDS_WITH ignore case operator`,
+		Name: `Basic translation for ENDSWITH ignore case operator`,
 		RQL:  `match(foo,*whoam)`,
 		Model: new(struct {
 			Foo string `rql:"filter"`
