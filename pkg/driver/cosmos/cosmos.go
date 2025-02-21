@@ -140,7 +140,7 @@ func NewCosmosTranslator(r *gorql.RqlRootNode) (st *Translator) {
 	st.SetOpFunc(driver.EqOp, st.GetEqualityTranslatorOpFunc("=", "IS"))
 
 	st.SetOpFunc(driver.LikeOp, st.GetFieldValueTranslatorFunc(driver.LikeOp, starToPercentFunc))
-	st.SetOpFunc(driver.MatchOp, st.GetFunctionValueTranslatorFunc("CONTAINS", starToPercentFunc, true))
+	st.SetOpFunc(driver.MatchOp, st.GetFunctionValueTranslatorFunc(true))
 	st.SetOpFunc(driver.GtOp, st.GetFieldValueTranslatorFunc(">", convert))
 	st.SetOpFunc(driver.LtOp, st.GetFieldValueTranslatorFunc("<", convert))
 	st.SetOpFunc(driver.GeOp, st.GetFieldValueTranslatorFunc(">=", convert))
@@ -256,7 +256,7 @@ func (ct *Translator) GetFieldValueTranslatorFunc(op string, valueAlterFunc Alte
 	}
 }
 
-func (ct *Translator) GetFunctionValueTranslatorFunc(op string, valueAlterFunc AlterValueFunc, optionalBool bool) driver.TranslatorOpFunc {
+func (ct *Translator) GetFunctionValueTranslatorFunc(optionalBool bool) driver.TranslatorOpFunc {
 	return func(n *gorql.RqlNode) (s string, err error) {
 		var field string
 		var placeholder string
@@ -277,14 +277,26 @@ func (ct *Translator) GetFunctionValueTranslatorFunc(op string, valueAlterFunc A
 			return "", fmt.Errorf("value %v is not type string", subArgs[0])
 		}
 		placeholder = fmt.Sprintf("@p%s", strconv.Itoa(len(ct.args)+1))
-		convertedValue, err := valueAlterFunc(value)
-		if err != nil {
-			return "", err
+
+		op := "CONTAINS"
+		hasStarPrefix := strings.HasPrefix(value, "*")
+		hasStarSuffix := strings.HasSuffix(value, "*")
+		if hasStarPrefix && hasStarSuffix {
+			value = strings.TrimPrefix(value, "*")
+			value = strings.TrimSuffix(value, "*")
+		} else if hasStarPrefix {
+			value = strings.TrimPrefix(value, "*")
+			op = "ENDSWITH"
+		} else if hasStarSuffix {
+			value = strings.TrimSuffix(value, "*")
+			op = "STARTSWITH"
 		}
+
 		ct.args = append(ct.args, Param{
 			Name:  placeholder,
-			Value: convertedValue,
+			Value: value,
 		})
+
 		s += fmt.Sprintf(`%s, %s, %v`, field, placeholder, optionalBool)
 		return op + "(" + s + ")", nil
 	}

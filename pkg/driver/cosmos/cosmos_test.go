@@ -136,11 +136,31 @@ var tests = []Test{
 	},
 	{
 		Name: `Basic translation for CONTAINS ignore case operator`,
-		RQL:  `match(foo,whoam*)`,
+		RQL:  `match(foo,*whoam*)`,
 		Model: new(struct {
 			Foo string `rql:"filter"`
 		}),
 		ExpectedSQL:         `WHERE CONTAINS(c.foo, @p1, true)`,
+		WantParseError:      false,
+		WantTranslatorError: false,
+	},
+	{
+		Name: `Basic translation for STARTS_WITH ignore case operator`,
+		RQL:  `match(foo,whoam*)`,
+		Model: new(struct {
+			Foo string `rql:"filter"`
+		}),
+		ExpectedSQL:         `WHERE STARTSWITH(c.foo, @p1, true)`,
+		WantParseError:      false,
+		WantTranslatorError: false,
+	},
+	{
+		Name: `Basic translation for ENDS_WITH ignore case operator`,
+		RQL:  `match(foo,*whoam)`,
+		Model: new(struct {
+			Foo string `rql:"filter"`
+		}),
+		ExpectedSQL:         `WHERE ENDSWITH(c.foo, @p1, true)`,
 		WantParseError:      false,
 		WantTranslatorError: false,
 	},
