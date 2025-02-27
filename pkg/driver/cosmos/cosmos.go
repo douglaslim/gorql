@@ -20,6 +20,8 @@ type Param struct {
 	Value interface{} `json:"value"`
 }
 
+type OperationValueAlterFunc func(interface{}) (string, interface{}, error)
+
 func (ct *Translator) SetOpFunc(op string, f driver.TranslatorOpFunc) {
 	ct.opsDic[strings.ToUpper(op)] = f
 }
@@ -130,6 +132,27 @@ var starToPercentFunc = AlterValueFunc(func(value interface{}) (interface{}, err
 	return strings.Replace(value.(string), `*`, `%`, -1), nil
 })
 
+// for *foo* -> CONTAINS foo
+// for foo* -> STARTSWITH foo
+// for *foo -> ENDSWITH foo
+var containsOperationValueAlterFunc = OperationValueAlterFunc(func(value interface{}) (string, interface{}, error) {
+	val := value.(string)
+	op := "CONTAINS"
+	hasStarPrefix := strings.HasPrefix(val, "*")
+	hasStarSuffix := strings.HasSuffix(val, "*")
+	if hasStarPrefix && hasStarSuffix {
+		val = strings.TrimPrefix(val, "*")
+		val = strings.TrimSuffix(val, "*")
+	} else if hasStarPrefix {
+		val = strings.TrimPrefix(val, "*")
+		op = "ENDSWITH"
+	} else if hasStarSuffix {
+		val = strings.TrimSuffix(val, "*")
+		op = "STARTSWITH"
+	}
+	return op, val, nil
+})
+
 func NewCosmosTranslator(r *gorql.RqlRootNode) (st *Translator) {
 	st = &Translator{rootNode: r, opsDic: map[string]driver.TranslatorOpFunc{}}
 
@@ -140,7 +163,7 @@ func NewCosmosTranslator(r *gorql.RqlRootNode) (st *Translator) {
 	st.SetOpFunc(driver.EqOp, st.GetEqualityTranslatorOpFunc("=", "IS"))
 
 	st.SetOpFunc(driver.LikeOp, st.GetFieldValueTranslatorFunc(driver.LikeOp, starToPercentFunc))
-	st.SetOpFunc(driver.MatchOp, st.GetFunctionValueTranslatorFunc(true))
+	st.SetOpFunc(driver.MatchOp, st.GetFunctionValueTranslatorFunc(containsOperationValueAlterFunc, true))
 	st.SetOpFunc(driver.GtOp, st.GetFieldValueTranslatorFunc(">", convert))
 	st.SetOpFunc(driver.LtOp, st.GetFieldValueTranslatorFunc("<", convert))
 	st.SetOpFunc(driver.GeOp, st.GetFieldValueTranslatorFunc(">=", convert))
@@ -256,7 +279,7 @@ func (ct *Translator) GetFieldValueTranslatorFunc(op string, valueAlterFunc Alte
 	}
 }
 
-func (ct *Translator) GetFunctionValueTranslatorFunc(optionalBool bool) driver.TranslatorOpFunc {
+func (ct *Translator) GetFunctionValueTranslatorFunc(operationValueAlterFunc OperationValueAlterFunc, optionalBool bool) driver.TranslatorOpFunc {
 	return func(n *gorql.RqlNode) (s string, err error) {
 		var field string
 		var placeholder string
@@ -278,23 +301,14 @@ func (ct *Translator) GetFunctionValueTranslatorFunc(optionalBool bool) driver.T
 		}
 		placeholder = fmt.Sprintf("@p%s", strconv.Itoa(len(ct.args)+1))
 
-		op := "CONTAINS"
-		hasStarPrefix := strings.HasPrefix(value, "*")
-		hasStarSuffix := strings.HasSuffix(value, "*")
-		if hasStarPrefix && hasStarSuffix {
-			value = strings.TrimPrefix(value, "*")
-			value = strings.TrimSuffix(value, "*")
-		} else if hasStarPrefix {
-			value = strings.TrimPrefix(value, "*")
-			op = "ENDSWITH"
-		} else if hasStarSuffix {
-			value = strings.TrimSuffix(value, "*")
-			op = "STARTSWITH"
+		op, transformedValue, err := operationValueAlterFunc(value)
+		if err != nil {
+			return "", fmt.Errorf("error transforming value %s: %v", value, err)
 		}
 
 		ct.args = append(ct.args, Param{
 			Name:  placeholder,
-			Value: value,
+			Value: transformedValue,
 		})
 
 		s += fmt.Sprintf(`%s, %s, %v`, field, placeholder, optionalBool)
